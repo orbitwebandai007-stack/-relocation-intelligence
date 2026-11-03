@@ -2,27 +2,35 @@
 
 @layer base {
   :root {
-    --bg-page: #F8F9F5;
-    --brand-forest: #21442E;
-    --brand-green: #3B724B;
-    --brand-sage: #8DA785;
-    --brand-sand: #EFEFE8;
-    --brand-border: #E2E6DD;
-    --brand-text: #1C221D;
-    --brand-muted: #697266;
-    --brand-red: #D23F31;
-    --brand-amber: #D69E2E;
-    --brand-blue: #3E6487;
+    --bg-page: #F8F9F7;
+    --brand-text: #18231E;
+    --brand-muted: #5F6A63;
+    --brand-accent: #176B50;
+    --brand-accent-hover: #125740;
+    --brand-accent-subtle: #E8F4EF;
+    --brand-secondary: #C8E6A0;
+    --brand-border: #E5EAE5;
+    --brand-surface: #FFFFFF;
+    --status-success: #176B50;
+    --status-warning: #B45309;
+    --status-danger: #BE123C;
   }
 
   body {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     color: var(--brand-text);
     background-color: var(--bg-page);
+    letter-spacing: -0.011em;
   }
 
-  h1, h2, h3, h4, .font-heading {
-    font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, sans-serif;
+  h1, h2, h3, h4, h5, h6, .font-heading {
+    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    letter-spacing: -0.025em;
+  }
+
+  .font-mono, .font-data {
+    font-family: 'JetBrains Mono', monospace;
+    font-variant-numeric: tabular-nums;
   }
 }
 
@@ -48,16 +56,104 @@
   border-top-color: #FFFFFF !important;
 }
 
+@keyframes radarPulse {
+  0% {
+    transform: scale(0.9);
+    opacity: 0.8;
+  }
+  50% {
+    transform: scale(1.6);
+    opacity: 0.25;
+  }
+  100% {
+    transform: scale(2.4);
+    opacity: 0;
+  }
+}
+
+.radar-ring {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 32px;
+  height: 32px;
+  margin-top: -16px;
+  margin-left: -16px;
+  border-radius: 50%;
+  background-color: rgba(23, 107, 80, 0.4);
+  animation: radarPulse 2.4s infinite cubic-bezier(0.2, 0.8, 0.2, 1);
+  pointer-events: none;
+}
+
+.radar-ring-amber {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 32px;
+  height: 32px;
+  margin-top: -16px;
+  margin-left: -16px;
+  border-radius: 50%;
+  background-color: rgba(234, 88, 12, 0.35);
+  animation: radarPulse 2.4s infinite cubic-bezier(0.2, 0.8, 0.2, 1);
+  pointer-events: none;
+}
+
+/* Lamar circular badge markers */
+.lamar-badge-marker {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background-color: #176B50;
+  color: #FFFFFF;
+  border: 2px solid #FFFFFF;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.16);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transform: translate(-50%, -50%);
+  transition: all 0.16s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.lamar-badge-marker:hover {
+  transform: translate(-50%, -50%) scale(1.18);
+  box-shadow: 0 4px 14px rgba(23, 107, 80, 0.35);
+  z-index: 1000 !important;
+}
+
+.lamar-badge-marker.is-active {
+  background-color: #0E4835;
+  border-color: #C8E6A0;
+  box-shadow: 0 0 0 4px rgba(200, 230, 160, 0.4), 0 4px 16px rgba(0, 0, 0, 0.2);
+  transform: translate(-50%, -50%) scale(1.24);
+  z-index: 1000 !important;
+}
+
+.lamar-badge-marker.is-consider {
+  background-color: #B45309;
+}
+
+.lamar-badge-marker.is-stretch {
+  background-color: #BE123C;
+}
+
 .custom-office-marker {
+  position: relative;
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  background: #1C3325;
+  background: #176B50;
   color: #FFFFFF;
-  padding: 5px 10px;
-  border-radius: 8px;
+  padding: 5px 12px;
+  border-radius: 9999px;
   border: 2px solid #FFFFFF;
-  box-shadow: 0 4px 14px rgba(0,0,0,0.25);
+  box-shadow: 0 4px 16px rgba(23, 107, 80, 0.35);
+  font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 11px;
   font-weight: 700;
   white-space: nowrap;
@@ -68,84 +164,87 @@
 .custom-locality-marker {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: 6px;
   background: #FFFFFF;
-  padding: 3px 8px 3px 6px;
-  border-radius: 20px;
-  border: 1.5px solid #D5DBD0;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+  padding: 4px 10px 4px 7px;
+  border-radius: 9999px;
+  border: 1px solid #E5EAE5;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.04);
+  font-family: 'Inter', sans-serif;
   font-size: 11px;
   font-weight: 600;
+  color: #18231E;
   white-space: nowrap;
   transform: translate(-50%, -50%);
   cursor: pointer;
-  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: all 0.16s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .custom-locality-marker:hover {
-  transform: translate(-50%, -50%) scale(1.08);
-  box-shadow: 0 4px 14px rgba(0,0,0,0.2);
+  transform: translate(-50%, -50%) translateY(-2px);
+  border-color: #176B50;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.12);
   z-index: 1000 !important;
 }
 
 .custom-locality-marker.is-active {
-  border-color: #1C3325;
-  box-shadow: 0 0 0 3px rgba(33, 68, 46, 0.25), 0 4px 14px rgba(0,0,0,0.22);
-  transform: translate(-50%, -50%) scale(1.12);
+  border-color: #176B50;
+  box-shadow: 0 0 0 3px rgba(23, 107, 80, 0.18), 0 6px 18px rgba(0,0,0,0.15);
+  transform: translate(-50%, -50%) translateY(-2px);
   z-index: 1000 !important;
-  background: #1C3325;
+  background: #176B50;
   color: #FFFFFF;
 }
 
 .custom-locality-marker.is-active .marker-dot {
-  border-color: #FFFFFF;
+  background-color: #C8E6A0;
 }
 
 .custom-locality-marker.is-shortlisted {
-  border-color: #3B724B;
-  background: #F4F8F4;
+  border-color: #176B50;
+  background: #F4FAF7;
 }
 
 .marker-dot {
-  width: 9px;
-  height: 9px;
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
   flex-shrink: 0;
 }
 
 .marker-dot-best {
-  background-color: #2E7D32;
+  background-color: #176B50;
 }
 
 .marker-dot-consider {
-  background-color: #D97706;
+  background-color: #B45309;
 }
 
 .marker-dot-stretch {
-  background-color: #DC2626;
+  background-color: #BE123C;
 }
 
 .custom-transit-marker {
-  width: 14px;
-  height: 14px;
-  background-color: #3B6B92;
-  border: 2px solid #FFFFFF;
+  width: 12px;
+  height: 12px;
+  background-color: #37526D;
+  border: 1.5px solid #FFFFFF;
   border-radius: 3px;
   transform: translate(-50%, -50%) rotate(45deg);
-  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+  box-shadow: 0 2px 5px rgba(0,0,0,0.15);
   cursor: pointer;
 }
 
 /* Custom styled range slider */
 input[type=range] {
-  accent-color: #284F35;
+  accent-color: #176B50;
 }
 
 /* Print styling for executive report export */
 @media print {
   body {
     background: #FFFFFF !important;
-    color: #111827 !important;
+    color: #18231E !important;
   }
   .no-print, header, nav, .bottom-bar, button, select, input[type=range] {
     display: none !important;

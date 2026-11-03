@@ -27,6 +27,9 @@ import {
   AlertTriangle,
   Loader2,
   Layers,
+  Map as MapIcon,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 
 interface MapComponentProps {
@@ -37,9 +40,12 @@ interface MapComponentProps {
   shortlist: number[];
   propType: PropertyType;
   layers: MapLayersState;
+  currentStep?: number;
   onSelectNeighbourhood: (id: number) => void;
   onRouteLoaded?: (areaName: string, route: RouteInfo) => void;
   className?: string;
+  isPanelVisible?: boolean;
+  onTogglePanel?: () => void;
 }
 
 export const MapComponent: React.FC<MapComponentProps> = ({
@@ -50,9 +56,12 @@ export const MapComponent: React.FC<MapComponentProps> = ({
   shortlist,
   propType,
   layers,
+  currentStep = 2,
   onSelectNeighbourhood,
   onRouteLoaded,
-  className = 'h-full min-h-[480px] w-full',
+  className = 'h-full w-full',
+  isPanelVisible = true,
+  onTogglePanel,
 }) => {
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapInstanceRef = useRef<maplibregl.Map | null>(null);
@@ -63,7 +72,7 @@ export const MapComponent: React.FC<MapComponentProps> = ({
   const [activeRoute, setActiveRoute] = useState<RouteInfo | null>(null);
   const [isRoutingLoading, setIsRoutingLoading] = useState(false);
 
-  // Initialize MapLibre GL map with OpenStreetMap standard raster tiles
+  // Initialize MapLibre GL map
   useEffect(() => {
     if (!mapContainerRef.current) return;
 
@@ -74,6 +83,7 @@ export const MapComponent: React.FC<MapComponentProps> = ({
     const centerLng = workplace ? workplace.lng : CITIES[city].center[1];
     const centerLat = workplace ? workplace.lat : CITIES[city].center[0];
 
+    // High quality light, low-contrast raster basemap
     const map = new maplibregl.Map({
       container: mapContainerRef.current,
       style: {
@@ -81,7 +91,9 @@ export const MapComponent: React.FC<MapComponentProps> = ({
         sources: {
           'osm-tiles': {
             type: 'raster',
-            tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
+            tiles: [
+              'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+            ],
             tileSize: 256,
             maxzoom: 19,
             attribution: '© OpenStreetMap contributors',
@@ -94,11 +106,16 @@ export const MapComponent: React.FC<MapComponentProps> = ({
             source: 'osm-tiles',
             minzoom: 0,
             maxzoom: 19,
+            paint: {
+              'raster-saturation': -0.55,
+              'raster-contrast': -0.1,
+              'raster-brightness-min': 0.05,
+            },
           },
         ],
       },
       center: [centerLng, centerLat],
-      zoom: 12.5,
+      zoom: 12.2,
       attributionControl: false,
     });
 
@@ -118,20 +135,20 @@ export const MapComponent: React.FC<MapComponentProps> = ({
         type: 'line',
         source: 'commute-route',
         paint: {
-          'line-color': '#0B2313',
-          'line-width': 6.5,
-          'line-opacity': 0.7,
+          'line-color': '#18231E',
+          'line-width': 6,
+          'line-opacity': 0.65,
         },
       });
 
-      // Inner road line
+      // Inner road line with distinct pine color
       map.addLayer({
         id: 'commute-line-inner',
         type: 'line',
         source: 'commute-route',
         paint: {
-          'line-color': '#2E7D32',
-          'line-width': 4.5,
+          'line-color': '#176B50',
+          'line-width': 4,
           'line-opacity': 0.95,
         },
       });
@@ -178,19 +195,13 @@ export const MapComponent: React.FC<MapComponentProps> = ({
     if (workplace) {
       map.flyTo({
         center: [workplace.lng, workplace.lat],
-        zoom: 12.5,
-        essential: true,
-      });
-    } else {
-      map.flyTo({
-        center: [CITIES[city].center[1], CITIES[city].center[0]],
-        zoom: 12,
-        essential: true,
+        zoom: currentStep === 0 ? 13 : 12.2,
+        duration: 900,
       });
     }
-  }, [workplace?.lat, workplace?.lng, city, mapLoaded]);
+  }, [workplace?.lat, workplace?.lng, mapLoaded, currentStep]);
 
-  // Real Road Routing Calculation via OSRM
+  // Dynamic route calculation for selected neighbourhood
   useEffect(() => {
     const map = mapInstanceRef.current;
     if (!map || !mapLoaded) return;
@@ -248,7 +259,7 @@ export const MapComponent: React.FC<MapComponentProps> = ({
             });
 
             if (map.getLayer('commute-line-inner')) {
-              map.setPaintProperty('commute-line-inner', 'line-color', '#2E7D32');
+              map.setPaintProperty('commute-line-inner', 'line-color', '#176B50');
               map.setPaintProperty('commute-line-inner', 'line-dasharray', [1, 0]);
             }
           } else {
@@ -259,7 +270,7 @@ export const MapComponent: React.FC<MapComponentProps> = ({
           }
         }
 
-        // Fit map bounds to comfortably frame the real road route
+        // Fit map bounds to frame road route on desktop
         if (
           !routeResult.isFallback &&
           routeResult.geometry &&
@@ -272,9 +283,9 @@ export const MapComponent: React.FC<MapComponentProps> = ({
           });
 
           map.fitBounds(bounds, {
-            padding: { top: 70, bottom: 80, left: 70, right: 70 },
+            padding: { top: 80, bottom: 80, left: 80, right: isPanelVisible ? 440 : 80 },
             maxZoom: 14.5,
-            duration: 650,
+            duration: 700,
           });
         }
       } catch (err) {
@@ -288,9 +299,9 @@ export const MapComponent: React.FC<MapComponentProps> = ({
     return () => {
       isMounted = false;
     };
-  }, [selectedId, workplace?.lat, workplace?.lng, mapLoaded, layers.c]);
+  }, [selectedId, workplace?.lat, workplace?.lng, mapLoaded, layers.c, isPanelVisible]);
 
-  // Update Markers and Popups
+  // Update Markers: Lamar-style circular badge markers & Workplace marker with pulsing radar
   useEffect(() => {
     const map = mapInstanceRef.current;
     if (!map || !mapLoaded) return;
@@ -304,17 +315,27 @@ export const MapComponent: React.FC<MapComponentProps> = ({
       popupRef.current = null;
     }
 
-    // 1. Workplace Marker
+    // 1. Workplace Marker (Distinct circular pin with pulsing radar ring)
     if (layers.w && workplace) {
+      const officeContainer = document.createElement('div');
+      officeContainer.className = 'relative flex items-center justify-center cursor-pointer';
+
+      // Pulsing concentric radar ring
+      const radar = document.createElement('div');
+      radar.className = 'radar-ring';
+      officeContainer.appendChild(radar);
+
+      // Office badge label
       const officeEl = document.createElement('div');
       officeEl.className = 'custom-office-marker';
       officeEl.innerHTML = `
-        <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+        <span class="w-2.5 h-2.5 rounded-full bg-[#C8E6A0]"></span>
         <span>Office · ${workplace.name}</span>
       `;
+      officeContainer.appendChild(officeEl);
 
       const officeMarker = new maplibregl.Marker({
-        element: officeEl,
+        element: officeContainer,
         anchor: 'center',
       })
         .setLngLat([workplace.lng, workplace.lat])
@@ -342,28 +363,39 @@ export const MapComponent: React.FC<MapComponentProps> = ({
       });
     }
 
-    // 3. Neighbourhood Markers
+    // 3. Neighbourhood Markers (Lamar-style circular badge markers)
     if (layers.n || layers.r) {
-      neighbourhoods.forEach((q) => {
+      neighbourhoods.forEach((q, index) => {
         if (!q.vis) return;
 
         const isSelected = selectedId === q.i;
         const isShortlisted = shortlist.includes(q.i);
         const rentK = Math.round(q.x.e.rent / 1000);
 
-        const dotClass =
+        const badgeClass =
           q.g === 0
-            ? 'marker-dot-best'
+            ? ''
             : q.g === 1
-            ? 'marker-dot-consider'
-            : 'marker-dot-stretch';
+            ? 'is-consider'
+            : 'is-stretch';
 
-        const markerEl = document.createElement('div');
-        markerEl.className = `custom-locality-marker ${
+        const markerContainer = document.createElement('div');
+        markerContainer.className = 'relative flex items-center gap-1.5 cursor-pointer group';
+
+        // Lamar circular badge node with number
+        const badgeNode = document.createElement('div');
+        badgeNode.className = `lamar-badge-marker ${badgeClass} ${
+          isSelected ? 'is-active' : ''
+        }`;
+        badgeNode.innerText = `${index + 1}`;
+        markerContainer.appendChild(badgeNode);
+
+        // Locality name + rent pill label
+        const labelPill = document.createElement('div');
+        labelPill.className = `custom-locality-marker ${
           isSelected ? 'is-active' : ''
         } ${isShortlisted ? 'is-shortlisted' : ''}`;
-        markerEl.innerHTML = `
-          ${layers.n ? `<span class="marker-dot ${dotClass}"></span>` : ''}
+        labelPill.innerHTML = `
           <span>${q.a[0].split(' ·')[0]}</span>
           ${
             layers.r
@@ -371,14 +403,15 @@ export const MapComponent: React.FC<MapComponentProps> = ({
               : ''
           }
         `;
+        markerContainer.appendChild(labelPill);
 
-        markerEl.addEventListener('click', (e) => {
+        markerContainer.addEventListener('click', (e) => {
           e.stopPropagation();
           onSelectNeighbourhood(q.i);
         });
 
         const marker = new maplibregl.Marker({
-          element: markerEl,
+          element: markerContainer,
           anchor: 'center',
         })
           .setLngLat([q.a[2], q.a[1]])
@@ -390,10 +423,10 @@ export const MapComponent: React.FC<MapComponentProps> = ({
         if (isSelected) {
           const fitLabel =
             q.g === 0
-              ? '<span class="text-xs px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-semibold">Best Fit</span>'
+              ? '<span class="text-xs px-2 py-0.5 rounded-full bg-[#E8F4EF] text-[#176B50] font-bold">Best Fit</span>'
               : q.g === 1
-              ? '<span class="text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 font-semibold">Worth Considering</span>'
-              : '<span class="text-xs px-2 py-0.5 rounded-full bg-red-100 text-red-800 font-semibold">Stretch</span>';
+              ? '<span class="text-xs px-2 py-0.5 rounded-full bg-amber-100 text-[#B45309] font-bold">Consider</span>'
+              : '<span class="text-xs px-2 py-0.5 rounded-full bg-red-100 text-[#BE123C] font-bold">Stretch</span>';
 
           const hasRealRoute = activeRoute
             ? !activeRoute.isFallback && activeRoute.distanceKm !== null
@@ -412,50 +445,46 @@ export const MapComponent: React.FC<MapComponentProps> = ({
             : 'Route unavailable';
 
           const popupHtml = `
-            <div class="p-3.5 text-neutral-800 font-sans max-w-[260px]">
+            <div class="p-3.5 text-[#18231E] font-sans max-w-[260px]">
               <div class="flex items-center justify-between gap-2 mb-1.5">
-                <h4 class="font-bold text-sm text-neutral-900 leading-tight">${
+                <h4 class="font-bold text-sm text-[#18231E] leading-tight">${
                   q.a[0]
                 }</h4>
                 ${fitLabel}
               </div>
-              <div class="text-xs text-neutral-600 space-y-1 mb-2.5">
+              <div class="text-xs text-[#5F6A63] space-y-1 mb-2">
                 <div class="flex justify-between">
-                  <span>${PROPERTIES[propType][0]} Est:</span>
-                  <span class="font-semibold text-neutral-900">${formatINR(
-                    q.x.e.rent * 0.85
-                  )} – ${formatINR(q.x.e.rent * 1.15)}</span>
+                  <span>${PROPERTIES[propType][0]} Rent:</span>
+                  <span class="font-bold font-mono text-[#18231E]">${formatINR(
+                    q.x.e.rent
+                  )}/mo</span>
                 </div>
                 <div class="flex justify-between">
                   <span>Road distance:</span>
-                  <span className="font-bold text-neutral-800">${displayDistance}</span>
+                  <span class="font-bold font-mono text-[#18231E]">${displayDistance}</span>
                 </div>
                 <div class="flex justify-between">
-                  <span>Driving estimate:</span>
-                  <span className="font-bold text-emerald-800">${displayDuration}</span>
-                </div>
-                <div class="flex justify-between">
-                  <span>Est. monthly savings:</span>
-                  <span className="font-bold ${
-                    q.x.sav >= 0 ? 'text-emerald-700' : 'text-red-700'
-                  }">${formatINR(q.x.sav)}/mo</span>
+                  <span>Driving time:</span>
+                  <span class="font-bold font-mono text-[#176B50]">${displayDuration}</span>
                 </div>
               </div>
-              <div class="text-[10px] text-neutral-500 italic pt-1 border-t border-neutral-100">
-                Score: ${q.sc}/100 · Road distance via OSRM
+              <div class="pt-2 border-t border-[#E5EAE5] text-[11px] text-[#5F6A63]">
+                Net Bankable Surplus: <strong class="font-mono text-[#176B50]">${formatINR(
+                  q.x.sav
+                )}/mo</strong>
               </div>
             </div>
           `;
 
-          const popup = new maplibregl.Popup({
-            offset: 16,
+          popupRef.current = new maplibregl.Popup({
             closeButton: false,
+            closeOnClick: false,
+            offset: 24,
+            className: 'custom-map-popup',
           })
             .setLngLat([q.a[2], q.a[1]])
             .setHTML(popupHtml)
             .addTo(map);
-
-          popupRef.current = popup;
         }
       });
     }
@@ -466,83 +495,125 @@ export const MapComponent: React.FC<MapComponentProps> = ({
     layers,
     workplace,
     city,
-    propType,
     mapLoaded,
+    propType,
     activeRoute,
-    onSelectNeighbourhood,
   ]);
 
   const handleZoom = (delta: number) => {
     const map = mapInstanceRef.current;
     if (!map) return;
-    if (delta > 0) {
-      map.zoomIn();
-    } else {
-      map.zoomOut();
-    }
+    map.zoomTo(map.getZoom() + delta, { duration: 300 });
   };
 
   const handleRecenter = () => {
     const map = mapInstanceRef.current;
     if (!map) return;
-    if (workplace) {
-      map.flyTo({ center: [workplace.lng, workplace.lat], zoom: 12.5 });
-    } else {
-      map.flyTo({
-        center: [CITIES[city].center[1], CITIES[city].center[0]],
-        zoom: 12,
-      });
-    }
+    const centerLng = workplace ? workplace.lng : CITIES[city].center[1];
+    const centerLat = workplace ? workplace.lat : CITIES[city].center[0];
+    map.flyTo({
+      center: [centerLng, centerLat],
+      zoom: 12.2,
+      duration: 600,
+    });
   };
 
   const selectedNeighbourhood = neighbourhoods.find((n) => n.i === selectedId);
 
   return (
-    <div
-      className={`relative overflow-hidden rounded-2xl border border-[#E2E6DD] bg-neutral-100 shadow-sm ${className}`}
-      style={{ minHeight: '520px' }}
-    >
-      {/* Map DOM Container */}
-      <div
-        ref={mapContainerRef}
-        className="h-full w-full"
-        style={{ minHeight: '520px' }}
-      />
+    <div className={`relative h-full w-full overflow-hidden bg-[#F8F9F7] ${className}`}>
+      {/* Map DOM Canvas */}
+      <div ref={mapContainerRef} className="h-full w-full" />
 
-      {/* Floating Route Info HUD Card (Top Left) */}
+      {/* Lamar-Style Top-Left Floating Map Controls */}
+      <div className="absolute top-4 left-4 z-10 flex flex-wrap items-center gap-2">
+        {/* Hide / Show Panel Button (Inspired by Lamar's Hide button) */}
+        {onTogglePanel && (
+          <button
+            type="button"
+            onClick={onTogglePanel}
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-white/95 backdrop-blur-md border border-[#E5EAE5] text-[#18231E] hover:bg-neutral-50 shadow-xs transition-all active:scale-95"
+          >
+            {isPanelVisible ? (
+              <>
+                <EyeOff className="w-3.5 h-3.5 text-[#5F6A63]" />
+                <span className="hidden sm:inline">Hide Panel</span>
+              </>
+            ) : (
+              <>
+                <Eye className="w-3.5 h-3.5 text-[#176B50]" />
+                <span>Show Panel</span>
+              </>
+            )}
+          </button>
+        )}
+
+        {/* Zoom & Recenter Controls */}
+        <div className="flex items-center shadow-xs rounded-xl overflow-hidden bg-white/95 backdrop-blur-md border border-[#E5EAE5]">
+          <button
+            type="button"
+            onClick={() => handleZoom(1)}
+            className="p-2 text-[#5F6A63] hover:text-[#18231E] hover:bg-neutral-100 transition-colors border-r border-[#E5EAE5]"
+            title="Zoom In"
+            aria-label="Zoom In"
+          >
+            <ZoomIn className="w-4 h-4" />
+          </button>
+          <button
+            type="button"
+            onClick={() => handleZoom(-1)}
+            className="p-2 text-[#5F6A63] hover:text-[#18231E] hover:bg-neutral-100 transition-colors border-r border-[#E5EAE5]"
+            title="Zoom Out"
+            aria-label="Zoom Out"
+          >
+            <ZoomOut className="w-4 h-4" />
+          </button>
+          <button
+            type="button"
+            onClick={handleRecenter}
+            className="p-2 text-[#5F6A63] hover:text-[#18231E] hover:bg-neutral-100 transition-colors"
+            title="Recenter Map"
+            aria-label="Recenter Map"
+          >
+            <Compass className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+
+      {/* Floating Route Telemetry HUD Card (Top Left below controls, when route exists) */}
       {selectedNeighbourhood && workplace && layers.c && (
-        <div className="absolute top-4 left-4 z-10 max-w-sm bg-white/95 backdrop-blur-md p-3.5 rounded-xl border border-[#E2E6DD] shadow-md space-y-2 transition-all">
+        <div className="absolute top-16 left-4 z-10 max-w-xs sm:max-w-sm bg-white/95 backdrop-blur-md p-3.5 rounded-2xl border border-[#E5EAE5] shadow-sm space-y-2 transition-all">
           <div className="flex items-center justify-between gap-3">
             <div className="min-w-0">
-              <div className="text-[10px] font-bold uppercase tracking-wider text-neutral-400">
-                Selected Neighbourhood
+              <div className="text-[10px] font-bold uppercase tracking-wider text-[#5F6A63]">
+                Active Road Route
               </div>
-              <div className="text-sm font-extrabold text-[#19241D] flex items-center gap-1.5 truncate">
-                <Navigation className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
-                <span className="truncate">{selectedNeighbourhood.a[0]}</span>
+              <div className="text-xs font-bold text-[#18231E] flex items-center gap-1.5 truncate">
+                <Navigation className="w-3.5 h-3.5 text-[#176B50] shrink-0" />
+                <span className="truncate">{selectedNeighbourhood.a[0]} ↔ {workplace.name}</span>
               </div>
             </div>
             {isRoutingLoading ? (
-              <span className="inline-flex items-center gap-1 text-[10px] text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-md font-medium shrink-0">
+              <span className="inline-flex items-center gap-1 text-[10px] text-[#176B50] bg-[#E8F4EF] px-2 py-0.5 rounded-md font-medium shrink-0">
                 <Loader2 className="w-3 h-3 animate-spin" /> Routing...
               </span>
             ) : activeRoute && !activeRoute.isFallback && activeRoute.distanceKm !== null ? (
-              <span className="text-[10px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md font-bold uppercase tracking-wider shrink-0">
-                OSRM Road Route
+              <span className="text-[10px] text-[#176B50] bg-[#E8F4EF] px-2 py-0.5 rounded-md font-bold uppercase tracking-wider shrink-0 font-mono">
+                OSRM Road
               </span>
             ) : (
-              <span className="inline-flex items-center gap-1 text-[10px] text-amber-800 bg-amber-50 px-2 py-0.5 rounded-md font-medium shrink-0">
+              <span className="inline-flex items-center gap-1 text-[10px] text-[#B45309] bg-amber-50 px-2 py-0.5 rounded-md font-medium shrink-0">
                 <AlertTriangle className="w-3 h-3" /> Route unavailable
               </span>
             )}
           </div>
 
-          <div className="grid grid-cols-2 gap-3 pt-2 border-t border-neutral-100 text-xs">
+          <div className="grid grid-cols-2 gap-3 pt-2 border-t border-[#E5EAE5]/60 text-xs">
             <div>
-              <div className="text-[10px] text-neutral-500 font-semibold uppercase tracking-wider flex items-center gap-1">
-                <Car className="w-3 h-3 text-neutral-400" /> Road Distance
+              <div className="text-[10px] text-[#5F6A63] font-semibold uppercase tracking-wider flex items-center gap-1">
+                <Car className="w-3 h-3 text-[#5F6A63]" /> Road Distance
               </div>
-              <div className="text-base font-extrabold text-neutral-900 mt-0.5">
+              <div className="text-sm font-bold font-mono text-[#18231E] mt-0.5">
                 {activeRoute && !activeRoute.isFallback && activeRoute.distanceKm !== null
                   ? `${activeRoute.distanceKm} km`
                   : selectedNeighbourhood.roadKm !== null && selectedNeighbourhood.roadKm !== undefined
@@ -552,10 +623,10 @@ export const MapComponent: React.FC<MapComponentProps> = ({
             </div>
 
             <div>
-              <div className="text-[10px] text-neutral-500 font-semibold uppercase tracking-wider flex items-center gap-1">
-                <Clock className="w-3 h-3 text-emerald-600" /> Est. Driving Time
+              <div className="text-[10px] text-[#5F6A63] font-semibold uppercase tracking-wider flex items-center gap-1">
+                <Clock className="w-3 h-3 text-[#176B50]" /> Driving Time
               </div>
-              <div className="text-base font-extrabold text-emerald-800 mt-0.5">
+              <div className="text-sm font-bold font-mono text-[#176B50] mt-0.5">
                 {activeRoute && !activeRoute.isFallback && activeRoute.durationMinutes !== null
                   ? `${activeRoute.durationMinutes} min`
                   : selectedNeighbourhood.drivingMin !== null && selectedNeighbourhood.drivingMin !== undefined
@@ -564,66 +635,29 @@ export const MapComponent: React.FC<MapComponentProps> = ({
               </div>
             </div>
           </div>
-
-          <div className="text-[10px] text-neutral-400 border-t border-neutral-100 pt-1 leading-normal">
-            Highlighted driving route from {workplace.name} to {selectedNeighbourhood.a[0]}.
-          </div>
         </div>
       )}
 
-      {/* Floating Map Zoom / Recenter Controls (Top Right) */}
-      <div className="absolute top-4 right-4 z-10 flex flex-col gap-1.5 shadow-md rounded-lg overflow-hidden bg-white/95 backdrop-blur-sm border border-[#E2E6DD]">
-        <button
-          type="button"
-          onClick={() => handleZoom(1)}
-          className="p-2 text-neutral-700 hover:text-neutral-950 hover:bg-neutral-100 transition-colors border-b border-neutral-100"
-          title="Zoom In"
-          aria-label="Zoom In"
-        >
-          <ZoomIn className="w-4 h-4" />
-        </button>
-        <button
-          type="button"
-          onClick={() => handleZoom(-1)}
-          className="p-2 text-neutral-700 hover:text-neutral-950 hover:bg-neutral-100 transition-colors border-b border-neutral-100"
-          title="Zoom Out"
-          aria-label="Zoom Out"
-        >
-          <ZoomOut className="w-4 h-4" />
-        </button>
-        <button
-          type="button"
-          onClick={handleRecenter}
-          className="p-2 text-neutral-700 hover:text-neutral-950 hover:bg-neutral-100 transition-colors"
-          title="Recenter Map"
-          aria-label="Recenter Map"
-        >
-          <Compass className="w-4 h-4" />
-        </button>
-      </div>
-
-      {/* Map Legend */}
-      <div className="absolute bottom-3 left-3 z-10 flex flex-wrap items-center gap-2 px-3 py-1.5 bg-white/95 backdrop-blur-sm border border-[#E2E6DD] rounded-lg text-[11px] text-neutral-600 shadow-sm">
-        <span className="font-semibold text-neutral-800">Legend:</span>
-        <span className="inline-flex items-center gap-1">
-          <span className="w-2.5 h-2.5 rounded-full bg-[#2E7D32]"></span> Best Fit
+      {/* Bottom Map Legend */}
+      <div className="absolute bottom-3 left-3 z-10 flex flex-wrap items-center gap-2.5 px-3 py-1.5 bg-white/95 backdrop-blur-sm border border-[#E5EAE5] rounded-xl text-[11px] text-[#5F6A63] shadow-xs">
+        <span className="font-semibold text-[#18231E]">Lamar Badges:</span>
+        <span className="inline-flex items-center gap-1 font-medium">
+          <span className="w-2.5 h-2.5 rounded-full bg-[#176B50]"></span> Best Fit
         </span>
-        <span className="inline-flex items-center gap-1">
-          <span className="w-2.5 h-2.5 rounded-full bg-[#D97706]"></span> Worth
-          Considering
+        <span className="inline-flex items-center gap-1 font-medium">
+          <span className="w-2.5 h-2.5 rounded-full bg-[#B45309]"></span> Consider
         </span>
-        <span className="inline-flex items-center gap-1">
-          <span className="w-2.5 h-2.5 rounded-full bg-[#DC2626]"></span> Stretch
+        <span className="inline-flex items-center gap-1 font-medium">
+          <span className="w-2.5 h-2.5 rounded-full bg-[#BE123C]"></span> Stretch
         </span>
-        <span className="inline-flex items-center gap-1 pl-1 border-l border-neutral-200">
-          <span className="w-2.5 h-2.5 rotate-45 bg-[#3B6B92] inline-block"></span>{' '}
-          Metro
+        <span className="inline-flex items-center gap-1 pl-1 border-l border-[#E5EAE5] font-medium">
+          <span className="w-2.5 h-2.5 rotate-45 bg-[#37526D] inline-block"></span> Metro
         </span>
       </div>
 
-      {/* OpenStreetMap Attribution Tag */}
-      <div className="absolute bottom-1 right-2 z-10 text-[10px] text-neutral-500 bg-white/80 backdrop-blur-xs px-2 py-0.5 rounded shadow-2xs pointer-events-auto">
-        © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer" className="underline hover:text-neutral-800">OpenStreetMap contributors</a> · OSRM Routing
+      {/* Attribution Tag */}
+      <div className="absolute bottom-1 right-2 z-10 text-[10px] text-neutral-400 bg-white/80 backdrop-blur-xs px-2 py-0.5 rounded shadow-2xs">
+        © OpenStreetMap contributors · OSRM Road Routing
       </div>
     </div>
   );

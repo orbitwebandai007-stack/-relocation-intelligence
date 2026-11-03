@@ -1,0 +1,239 @@
+import React from 'react';
+import { ArrowRight, Compass, ShieldCheck } from 'lucide-react';
+
+interface FooterProps {
+  onStartPlanning?: () => void;
+  onReset?: () => void;
+}
+
+export const Footer: React.FC<FooterProps> = ({ onStartPlanning }) => {
+  return (
+    <footer className="relative bg-[#0F3020] text-white pt-16 sm:pt-20 pb-0 overflow-hidden no-print selection:bg-[#C8E6A0]/20 selection:text-[#C8E6A0]">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+        {/* Top 5-Column Grid (Company, Products, Resources, Legal, Contact) */}
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-8 sm:gap-10 pb-12 sm:pb-16">
+          {/* 1. Company */}
+          <div className="space-y-4">
+            <h4 className="font-heading font-semibold text-sm sm:text-base text-white tracking-tight">
+              Company
+            </h4>
+            <ul className="space-y-2.5 text-xs sm:text-[13px] text-white/70">
+              <li>
+                <a href="#how-it-works" className="hover:text-white transition-colors">
+                  About us
+                </a>
+              </li>
+              <li>
+                <a href="#problem" className="hover:text-white transition-colors">
+                  The Problem
+                </a>
+              </li>
+              <li>
+                <a href="#how-it-works" className="hover:text-white transition-colors">
+                  Methodology
+                </a>
+              </li>
+              <li>
+                <a href="#evaluation" className="hover:text-white transition-colors">
+                  Contact
+                </a>
+              </li>
+            </ul>
+          </div>
+
+          {/* 2. Products */}
+          <div className="space-y-4">
+            <h4 className="font-heading font-semibold text-sm sm:text-base text-white tracking-tight">
+              Products
+            </h4>
+            <ul className="space-y-2.5 text-xs sm:text-[13px] text-white/70">
+              <li>
+                <button
+                  type="button"
+                  onClick={onStartPlanning}
+                  className="hover:text-white transition-colors text-left"
+                >
+                  Relocation Planner
+                </button>
+              </li>
+              <li>
+                <a href="#evaluation" className="hover:text-white transition-colors">
+                  Parity Audit
+                </a>
+              </li>
+              <li>
+                <a href="#neighbourhoods" className="hover:text-white transition-colors">
+                  Locality Scoring
+                </a>
+              </li>
+              <li>
+                <a href="#cities" className="hover:text-white transition-colors">
+                  City Comparators
+                </a>
+              </li>
+            </ul>
+          </div>
+
+          {/* 3. Resources */}
+          <div className="space-y-4">
+            <h4 className="font-heading font-semibold text-sm sm:text-base text-white tracking-tight">
+              Resources
+            </h4>
+            <ul className="space-y-2.5 text-xs sm:text-[13px] text-white/70">
+              <li>
+                <a href="#neighbourhoods" className="hover:text-white transition-colors">
+                  Corridor Guides
+                </a>
+              </li>
+              <li>
+                <a href="#problem" className="hover:text-white transition-colors">
+                  Commute Index
+                </a>
+              </li>
+              <li>
+                <a href="#problem" className="hover:text-white transition-colors">
+                  Deposit Multipliers
+                </a>
+              </li>
+              <li>
+                <a href="#evaluation" className="hover:text-white transition-colors">
+                  White Paper
+                </a>
+              </li>
+            </ul>
+          </div>
+
+          {/* 4. Legal */}
+          <div className="space-y-4">
+            <h4 className="font-heading font-semibold text-sm sm:text-base text-white tracking-tight">
+              Legal
+            </h4>
+            <ul className="space-y-2.5 text-xs sm:text-[13px] text-white/70">
+              <li>
+                <span className="hover:text-white transition-colors cursor-pointer">
+                  Privacy
+                </span>
+              </li>
+              <li>
+                <span className="hover:text-white transition-colors cursor-pointer">
+                  Security
+                </span>
+              </li>
+              <li>
+                <span className="hover:text-white transition-colors cursor-pointer">
+                  Terms of use
+                </span>
+              </li>
+              <li>
+                <span className="hover:text-white transition-colors cursor-pointer">
+                  Browser Storage
+                </span>
+              </li>
+            </ul>
+          </div>
+
+          {/* 5. Contact */}
+          <div className="space-y-4 col-span-2 sm:col-span-1">
+            <h4 className="font-heading font-semibold text-sm sm:text-base text-white tracking-tight">
+              Contact
+            </h4>
+            <ul className="space-y-2.5 text-xs sm:text-[13px] text-white/70">
+              <li>
+                <a
+                  href="mailto:support@worthwhile.app"
+                  className="hover:text-white transition-colors"
+                >
+                  support@worthwhile.app
+                </a>
+              </li>
+              <li>
+                <span className="text-white/80 font-mono">+91 80 4920 1800</span>
+              </li>
+              <li>
+                <span className="text-[#C8E6A0] font-mono text-xs">
+                  07000-WORTHWHILE
+                </span>
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        {/* Hairline Divider Rule */}
+        <div className="border-t border-white/15 pt-8 pb-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+          {/* Location & Copyright */}
+          <div className="space-y-1.5 text-xs sm:text-[13px] text-white/75">
+            <p>
+              Worthwhile HQ, Outer Ring Road Corridor, Bengaluru & Cyber City, Gurugram, India.
+            </p>
+            <p>© 2026 Worthwhile. All rights reserved.</p>
+          </div>
+
+          {/* Circular Social Badges (LinkedIn, X, Instagram, Facebook/Globe style from reference) */}
+          <div className="flex items-center gap-2.5 shrink-0">
+            {/* LinkedIn */}
+            <a
+              href="https://linkedin.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="LinkedIn"
+              className="w-9 h-9 rounded-full bg-white text-[#0F3020] hover:bg-[#C8E6A0] transition-colors flex items-center justify-center font-bold text-xs"
+            >
+              <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                <path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z" />
+              </svg>
+            </a>
+
+            {/* X / Twitter */}
+            <a
+              href="https://x.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="X"
+              className="w-9 h-9 rounded-full bg-white text-[#0F3020] hover:bg-[#C8E6A0] transition-colors flex items-center justify-center font-bold text-xs"
+            >
+              <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
+                <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+              </svg>
+            </a>
+
+            {/* Instagram */}
+            <a
+              href="https://instagram.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Instagram"
+              className="w-9 h-9 rounded-full bg-white text-[#0F3020] hover:bg-[#C8E6A0] transition-colors flex items-center justify-center font-bold text-xs"
+            >
+              <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z" />
+              </svg>
+            </a>
+
+            {/* Globe / Web */}
+            <a
+              href="https://worthwhile.app"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Website"
+              className="w-9 h-9 rounded-full bg-white text-[#0F3020] hover:bg-[#C8E6A0] transition-colors flex items-center justify-center font-bold text-xs"
+            >
+              <Compass className="w-4 h-4 stroke-[2.2]" />
+            </a>
+          </div>
+        </div>
+      </div>
+
+      {/* GIGANTIC BOTTOM WATERMARK TYPOGRAPHY (Matching PadiSave in Reference Image) */}
+      <div className="relative w-full overflow-hidden select-none pointer-events-none mt-2 sm:mt-4">
+        {/* Subtle background glow behind letters */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/25 via-transparent to-transparent pointer-events-none" />
+
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-[17vw] lg:text-[180px] xl:text-[215px] font-heading font-black tracking-tighter leading-[0.78] text-[#1E5239]/70 text-left -ml-1 sm:-ml-2 truncate max-w-full select-none">
+            Worthwhile
+          </div>
+        </div>
+      </div>
+    </footer>
+  );
+};

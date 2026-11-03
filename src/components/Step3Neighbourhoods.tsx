@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   CityKey,
   MapLayersState,
@@ -19,6 +19,8 @@ import { MapComponent } from './MapComponent';
 import {
   Search,
   Check,
+  Bookmark,
+  Star,
   Layers,
   ArrowRight,
   ArrowLeft,
@@ -27,8 +29,10 @@ import {
   Navigation,
   SlidersHorizontal,
   ChevronDown,
+  ChevronUp,
   Info,
-  ShieldCheck,
+  MapPin,
+  TrendingUp,
 } from 'lucide-react';
 
 interface Step3NeighbourhoodsProps {
@@ -51,9 +55,10 @@ export const Step3Neighbourhoods: React.FC<Step3NeighbourhoodsProps> = ({
   const [activeNeighbourhoodId, setActiveNeighbourhoodId] = useState<number | null>(
     state.sel.length > 0 ? state.sel[0] : scoredNeighbourhoods[0]?.i ?? null
   );
+  const [expandedId, setExpandedId] = useState<number | null>(null);
   const [activeRouteInfo, setActiveRouteInfo] = useState<RouteInfo | null>(null);
 
-  // 3 Primary Map Layers required by user
+  // Map layer controls
   const [layers, setLayers] = useState<MapLayersState>({
     n: true, // Neighbourhood markers
     w: true, // Workplace marker
@@ -118,569 +123,440 @@ export const Step3Neighbourhoods: React.FC<Step3NeighbourhoodsProps> = ({
       if (currentSel.length < 3) {
         currentSel.push(idx);
       } else {
-        alert('You can shortlist up to 3 neighbourhoods for side-by-side comparison.');
-        return;
+        currentSel.shift();
+        currentSel.push(idx);
       }
     }
+
     onUpdateState({ sel: currentSel });
   };
 
-  const handleSelectPrimary = (idx: number) => {
-    setActiveNeighbourhoodId(idx);
-    const newSel = [idx, ...state.sel.filter((id) => id !== idx)].slice(0, 3);
-    onUpdateState({ sel: newSel });
-  };
-
-  const clearFilters = () => {
+  // Filter and sort handlers
+  const handleFilterChange = (filterUpdate: Partial<typeof state.f>) => {
     onUpdateState({
-      f: { r: '', c: '', a: '', q: '', sortBy: 'score' },
+      f: {
+        ...state.f,
+        ...filterUpdate,
+      },
     });
   };
 
-  const handleSortChange = (sortBy: SortPriority) => {
-    onUpdateState({
-      f: { ...state.f, sortBy },
-    });
-  };
+  // Filtered and sorted neighbourhoods list
+  const filteredNeighbourhoods = useMemo(() => {
+    return scoredNeighbourhoods.filter((item) => {
+      // 1. Text search
+      if (state.f.q.trim()) {
+        const query = state.f.q.toLowerCase();
+        if (!item.a[0].toLowerCase().includes(query)) {
+          return false;
+        }
+      }
 
-  const GROUP_TITLES = ['BEST FIT', 'WORTH CONSIDERING', 'STRETCH OPTIONS'];
-  const GROUP_SUBTITLES = [
-    'Fits budget and road commute comfortably',
-    'Reasonable trade-off on driving distance or rent',
-    'Exceeds commute or estimated budget limit',
-  ];
+      // 2. Affordability tier
+      if (state.f.a === 'w' && item.g !== 0) return false;
+      if (state.f.a === 'n' && item.g !== 1) return false;
+      if (state.f.a === 'a' && item.g !== 2) return false;
+
+      // 3. Commute limit
+      if (state.f.c) {
+        const maxCommute = Number(state.f.c);
+        const minVal = item.drivingMin ?? item.x.min;
+        if (minVal > maxCommute) return false;
+      }
+
+      return true;
+    });
+  }, [scoredNeighbourhoods, state.f]);
 
   return (
     <div className="space-y-6">
-      {/* Header Info */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+      {/* Step Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <div className="text-xs font-bold uppercase tracking-widest text-emerald-800 mb-1">
-            03 · Discovery & Real Road Routing
+          <div className="text-xs font-mono font-semibold text-[#176B50] mb-1 flex items-center gap-1.5">
+            <span>03</span>
+            <span className="text-neutral-300">/</span>
+            <span>NEIGHBOURHOOD DISCOVERY & COMMUTE MATRIX</span>
           </div>
-          <h2 className="text-2xl sm:text-3xl font-extrabold text-[#19241D] tracking-tight">
-            Explore neighbourhoods & road routes.
+          <h2 className="text-2xl sm:text-3xl font-bold text-[#18231E] font-heading tracking-tight">
+            Discover neighbourhoods near {state.wp?.name || currentCity.name}
           </h2>
-          <p className="mt-1 text-sm text-neutral-600">
-            Near {state.wp?.name || 'Office'}, {currentCity.name}. Net living allowance:{' '}
-            <strong className="text-neutral-900">{formatINR(Math.max(0, availableBudget))}/mo</strong>{' '}
-            after savings target and commitments.
+          <p className="mt-1 text-xs sm:text-sm text-[#5F6A63]">
+            Ranked by commute proximity, rent affordability, and savings potential. Select up to 3 localities to compare.
           </p>
         </div>
 
-        {/* Shortlisted counter */}
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-neutral-500 font-medium">Shortlisted:</span>
-          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-[#21442E] text-white">
-            {state.sel.length} of 3
+        {/* Shortlist Counter Pill */}
+        <div className="flex items-center gap-2 self-start sm:self-auto bg-white px-3.5 py-1.5 rounded-full border border-[#E5EAE5] shadow-xs">
+          <Bookmark className="w-3.5 h-3.5 text-[#176B50]" />
+          <span className="text-xs font-semibold text-[#18231E]">
+            Shortlisted: <span className="font-mono text-[#176B50]">{state.sel.length}</span>/3
           </span>
         </div>
       </div>
 
-      {/* Main 2-Column Discovery Interface */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 min-h-[640px]">
-        {/* Left Column: Filters, Active Inspector & Locality Cards (5 cols) */}
-        <div className="lg:col-span-5 flex flex-col space-y-4">
-          {/* Search, Sort & Quick Filters */}
-          <div className="bg-white p-4 rounded-2xl border border-[#E2E6DD] shadow-xs space-y-3">
-            {/* Search Input & Sort Selector */}
-            <div className="flex flex-col sm:flex-row gap-2">
-              <div className="relative flex-1">
-                <Search className="w-4 h-4 text-neutral-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                <input
-                  type="text"
-                  placeholder="Search locality..."
-                  value={state.f.q}
-                  onChange={(e) =>
-                    onUpdateState({ f: { ...state.f, q: e.target.value } })
-                  }
-                  className="w-full pl-9 pr-3 py-2 bg-neutral-50 border border-[#E2E6DD] rounded-xl text-xs font-medium text-neutral-900 focus:outline-none focus:ring-2 focus:ring-[#21442E]/20"
-                />
-              </div>
-
-              {/* Priority Sorting Dropdown (Requirement 3) */}
-              <div className="relative shrink-0">
-                <select
-                  value={state.f.sortBy || 'score'}
-                  onChange={(e) => handleSortChange(e.target.value as SortPriority)}
-                  className="w-full sm:w-auto pl-3 pr-8 py-2 bg-neutral-50 border border-[#E2E6DD] rounded-xl text-xs font-semibold text-neutral-800 appearance-none focus:outline-none focus:ring-2 focus:ring-[#21442E]/20"
-                >
-                  <option value="score">Sort: Best Fit (Score)</option>
-                  <option value="rent">Sort: Lowest Rent</option>
-                  <option value="commute">Sort: Shortest Driving Commute</option>
-                  <option value="savings">Sort: Highest Savings</option>
-                  <option value="distance">Sort: Nearest Distance</option>
-                </select>
-                <ChevronDown className="w-3.5 h-3.5 text-neutral-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-              </div>
+      {/* Two-Column Discovery Dashboard Layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        {/* LEFT COLUMN: Search, Filters & Locality Cards (5 of 12 columns) */}
+        <div className="lg:col-span-5 space-y-4">
+          {/* Search & Filter Controls */}
+          <div className="bg-white p-4 rounded-2xl border border-[#E5EAE5] shadow-xs space-y-3">
+            {/* Search Input */}
+            <div className="relative">
+              <Search className="w-4 h-4 text-[#5F6A63] absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                value={state.f.q}
+                onChange={(e) => handleFilterChange({ q: e.target.value })}
+                placeholder="Search area (e.g. Indiranagar, Cyber City...)"
+                className="w-full pl-9 pr-3 py-2 bg-[#F8F9F7] border border-[#E5EAE5] rounded-xl text-xs font-medium text-[#18231E] placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-[#176B50]/20 focus:border-[#176B50]"
+              />
             </div>
 
-            {/* Filter Dropdowns */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
-              <select
-                value={state.prop}
-                onChange={(e) =>
-                  onUpdateState({
-                    prop: e.target.value as PropertyType,
-                    ov: {},
-                  })
-                }
-                className="p-2 bg-neutral-50 border border-[#E2E6DD] rounded-lg text-neutral-800 text-[11px] font-medium"
+            {/* Quick Filter Tabs */}
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none text-xs">
+              <button
+                type="button"
+                onClick={() => handleFilterChange({ a: '', c: '' })}
+                className={`px-3 py-1 rounded-lg text-xs font-medium whitespace-nowrap transition-colors ${
+                  state.f.a === '' && state.f.c === ''
+                    ? 'bg-[#176B50] text-white shadow-xs'
+                    : 'bg-[#F8F9F7] text-[#5F6A63] hover:text-[#18231E] border border-[#E5EAE5]'
+                }`}
               >
-                {(Object.keys(PROPERTIES) as PropertyType[]).map((pKey) => (
-                  <option key={pKey} value={pKey}>
-                    {PROPERTIES[pKey][0]}
-                  </option>
-                ))}
-              </select>
-
-              <select
-                value={state.f.r}
-                onChange={(e) =>
-                  onUpdateState({ f: { ...state.f, r: e.target.value } })
-                }
-                className="p-2 bg-neutral-50 border border-[#E2E6DD] rounded-lg text-neutral-800 text-[11px] font-medium"
+                All Areas ({scoredNeighbourhoods.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => handleFilterChange({ a: 'w' })}
+                className={`px-3 py-1 rounded-lg text-xs font-medium whitespace-nowrap transition-colors ${
+                  state.f.a === 'w'
+                    ? 'bg-[#176B50] text-white shadow-xs'
+                    : 'bg-[#F8F9F7] text-[#5F6A63] hover:text-[#18231E] border border-[#E5EAE5]'
+                }`}
               >
-                <option value="">Any rent</option>
-                <option value="0">Under ₹8k</option>
-                <option value="1">₹8k – 12k</option>
-                <option value="2">₹12k – 18k</option>
-                <option value="3">₹18k – 25k</option>
-                <option value="4">Above ₹25k</option>
-              </select>
-
-              <select
-                value={state.f.c}
-                onChange={(e) =>
-                  onUpdateState({ f: { ...state.f, c: e.target.value } })
-                }
-                className="p-2 bg-neutral-50 border border-[#E2E6DD] rounded-lg text-neutral-800 text-[11px] font-medium"
+                Best Fit
+              </button>
+              <button
+                type="button"
+                onClick={() => handleFilterChange({ c: '30' })}
+                className={`px-3 py-1 rounded-lg text-xs font-medium whitespace-nowrap transition-colors ${
+                  state.f.c === '30'
+                    ? 'bg-[#176B50] text-white shadow-xs'
+                    : 'bg-[#F8F9F7] text-[#5F6A63] hover:text-[#18231E] border border-[#E5EAE5]'
+                }`}
               >
-                <option value="">Any commute</option>
-                <option value="15">Under 15 min</option>
-                <option value="30">Under 30 min</option>
-                <option value="45">Under 45 min</option>
-                <option value="60">Under 60 min</option>
-              </select>
-
-              <select
-                value={state.f.a}
-                onChange={(e) =>
-                  onUpdateState({ f: { ...state.f, a: e.target.value } })
-                }
-                className="p-2 bg-neutral-50 border border-[#E2E6DD] rounded-lg text-neutral-800 text-[11px] font-medium"
-              >
-                <option value="">Any budget</option>
-                <option value="w">Within budget</option>
-                <option value="n">Near budget</option>
-                <option value="a">Above budget</option>
-              </select>
-            </div>
-
-            {/* 3 Map Layers (Requirement 5) */}
-            <div className="pt-2 border-t border-[#E2E6DD] flex flex-wrap items-center gap-3 text-[11px] text-neutral-600">
-              <span className="font-semibold text-neutral-700 flex items-center gap-1">
-                <Layers className="w-3.5 h-3.5 text-neutral-500" /> Map Layers:
-              </span>
-              {[
-                { k: 'n', label: 'Neighbourhoods' },
-                { k: 'w', label: 'Workplace' },
-                { k: 'c', label: 'Commute routes' },
-                { k: 't', label: 'Metro' },
-              ].map(({ k, label }) => (
-                <label key={k} className="inline-flex items-center gap-1 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={(layers as any)[k]}
-                    onChange={(e) =>
-                      setLayers({ ...layers, [k]: e.target.checked })
-                    }
-                    className="rounded text-[#21442E] focus:ring-[#21442E]"
-                  />
-                  <span>{label}</span>
-                </label>
-              ))}
+                &lt; 30m Commute
+              </button>
             </div>
           </div>
 
-          {/* Active Neighbourhood Inspector & Scoring Breakdown Panel (Requirement 4) */}
-          {activeNeighbourhood && (
-            <div className="bg-[#1C3325] text-white p-5 rounded-2xl shadow-sm space-y-3.5 border border-emerald-900/60">
-              <div className="flex items-start justify-between">
-                <div>
-                  <div className="text-[10px] font-bold tracking-widest uppercase text-emerald-400">
-                    Inspecting Locality & Road Route
-                  </div>
-                  <h3 className="text-xl font-heading font-extrabold text-white">
-                    {activeNeighbourhood.a[0]}
-                  </h3>
-                </div>
-                <div className="text-right">
-                  <div className="text-lg font-extrabold text-emerald-300">
-                    {formatINR(activeNeighbourhood.x.e.rent)}
-                    <span className="text-xs font-normal text-emerald-200/80">/mo</span>
-                  </div>
-                  <div className="text-[11px] text-emerald-300 font-bold">
-                    Fit Score: {activeNeighbourhood.sc}/100
-                  </div>
-                </div>
-              </div>
-
-              {/* Road metrics summary */}
-              <div className="flex items-center gap-3 bg-black/25 px-3 py-2 rounded-xl text-xs border border-white/10">
-                <div className="flex items-center gap-1.5 text-emerald-300">
-                  <Car className="w-3.5 h-3.5" />
-                  <span className="font-bold">
-                    {routeDistanceDisplay}
-                  </span>
-                  <span className="text-neutral-400 text-[11px]">road distance</span>
-                </div>
-                <span className="text-white/20">|</span>
-                <div className="flex items-center gap-1.5 text-emerald-300">
-                  <Clock className="w-3.5 h-3.5" />
-                  <span className="font-bold">
-                    {routeDurationDisplay !== 'Route unavailable'
-                      ? `~${routeDurationDisplay}`
-                      : 'Route unavailable'}
-                  </span>
-                  <span className="text-neutral-400 text-[11px]">est. driving</span>
-                </div>
-              </div>
-
-              {/* Transparent Recommendation Score Breakdown (Requirement 4: 40/30/20/10) */}
-              <div className="bg-black/25 rounded-xl p-3 text-xs border border-white/10 space-y-2">
-                <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-emerald-300/90">
-                  <span>Recommendation Scoring Weights</span>
-                  <span>100% Total</span>
-                </div>
-
-                <div className="space-y-1.5 text-[11px]">
-                  {/* Affordability: 40% */}
-                  <div>
-                    <div className="flex justify-between text-neutral-300 mb-0.5">
-                      <span>Affordability (40% weight)</span>
-                      <span className="font-semibold text-white">
-                        {activeNeighbourhood.scoreBreakdown.affordability}/100
-                      </span>
-                    </div>
-                    <div className="w-full bg-white/10 h-1.5 rounded-full overflow-hidden">
-                      <div
-                        className="bg-emerald-400 h-1.5 rounded-full"
-                        style={{
-                          width: `${activeNeighbourhood.scoreBreakdown.affordability}%`,
-                        }}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Commute convenience: 30% */}
-                  <div>
-                    <div className="flex justify-between text-neutral-300 mb-0.5">
-                      <span>Commute Convenience (30% weight)</span>
-                      <span className="font-semibold text-white">
-                        {activeNeighbourhood.scoreBreakdown.commute}/100
-                      </span>
-                    </div>
-                    <div className="w-full bg-white/10 h-1.5 rounded-full overflow-hidden">
-                      <div
-                        className="bg-emerald-400 h-1.5 rounded-full"
-                        style={{
-                          width: `${activeNeighbourhood.scoreBreakdown.commute}%`,
-                        }}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Savings potential: 20% */}
-                  <div>
-                    <div className="flex justify-between text-neutral-300 mb-0.5">
-                      <span>Savings Potential (20% weight)</span>
-                      <span className="font-semibold text-white">
-                        {activeNeighbourhood.scoreBreakdown.savings}/100
-                      </span>
-                    </div>
-                    <div className="w-full bg-white/10 h-1.5 rounded-full overflow-hidden">
-                      <div
-                        className="bg-emerald-400 h-1.5 rounded-full"
-                        style={{
-                          width: `${activeNeighbourhood.scoreBreakdown.savings}%`,
-                        }}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Lifestyle match: 10% */}
-                  <div>
-                    <div className="flex justify-between text-neutral-300 mb-0.5">
-                      <span>Lifestyle Synergy (10% weight)</span>
-                      <span className="font-semibold text-white">
-                        {activeNeighbourhood.scoreBreakdown.lifestyle}/100
-                      </span>
-                    </div>
-                    <div className="w-full bg-white/10 h-1.5 rounded-full overflow-hidden">
-                      <div
-                        className="bg-emerald-400 h-1.5 rounded-full"
-                        style={{
-                          width: `${activeNeighbourhood.scoreBreakdown.lifestyle}%`,
-                        }}
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Why this neighbourhood narrative (Requirement 4) */}
-              <div className="p-2.5 rounded-xl bg-white/5 border border-white/10 text-xs text-emerald-100/90 leading-relaxed">
-                <span className="font-bold text-white block mb-0.5">Why recommended:</span>
-                {activeNeighbourhood.why}
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex items-center gap-2 pt-1">
-                <button
-                  type="button"
-                  onClick={() => handleSelectPrimary(activeNeighbourhood.i)}
-                  className="flex-1 py-2 px-3 rounded-xl bg-white text-[#19241D] text-xs font-bold hover:bg-neutral-100 transition-colors shadow-xs"
-                >
-                  Select this neighbourhood
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleToggleShortlist(activeNeighbourhood.i)}
-                  className={`py-2 px-3 rounded-xl border text-xs font-semibold transition-colors ${
-                    state.sel.includes(activeNeighbourhood.i)
-                      ? 'bg-emerald-800 text-white border-emerald-600'
-                      : 'border-white/20 text-white hover:bg-white/10'
-                  }`}
-                >
-                  {state.sel.includes(activeNeighbourhood.i)
-                    ? '✓ Shortlisted'
-                    : '+ Shortlist'}
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Grouped Locality Cards List */}
-          <div className="flex-1 overflow-y-auto max-h-[520px] space-y-4 pr-1 scrollbar-thin">
-            {[0, 1, 2].map((groupVal) => {
-              const items = scoredNeighbourhoods.filter(
-                (q) => q.g === groupVal && q.vis
-              );
-
-              if (items.length === 0) return null;
-
-              const badgeColors = [
-                'bg-emerald-100 text-emerald-800 border-emerald-200',
-                'bg-amber-100 text-amber-800 border-amber-200',
-                'bg-red-100 text-red-800 border-red-200',
-              ];
-
-              return (
-                <div key={groupVal} className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span
-                      className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border ${badgeColors[groupVal]}`}
-                    >
-                      {GROUP_TITLES[groupVal]}
-                    </span>
-                    <span className="text-[11px] text-neutral-400">
-                      {GROUP_SUBTITLES[groupVal]}
-                    </span>
-                  </div>
-
-                  <div className="space-y-2">
-                    {items.map((q) => {
-                      const isSelected = activeNeighbourhoodId === q.i;
-                      const isShortlisted = state.sel.includes(q.i);
-                      const hasRoadDist =
-                        q.hasValidRoute && q.roadKm !== null && q.roadKm !== undefined;
-                      const roadDist = hasRoadDist ? `${q.roadKm} km road` : 'Route unavailable';
-                      const drivingDuration =
-                        q.hasValidRoute && q.drivingMin !== null && q.drivingMin !== undefined
-                          ? `~${q.drivingMin} min driving`
-                          : 'Route unavailable';
-
-                      return (
-                        <div
-                          key={q.i}
-                          onClick={() => {
-                            setActiveNeighbourhoodId(q.i);
-                          }}
-                          className={`p-3.5 rounded-xl border transition-all cursor-pointer ${
-                            isSelected
-                              ? 'border-[#21442E] bg-emerald-50/40 shadow-sm ring-1 ring-[#21442E]'
-                              : 'border-[#E2E6DD] bg-white hover:border-neutral-300 hover:shadow-xs'
-                          }`}
-                        >
-                          <div className="flex items-start justify-between">
-                            <div>
-                              <div className="flex items-center gap-2">
-                                <span className="font-bold text-sm text-neutral-900">
-                                  {q.a[0]}
-                                </span>
-                                <span className="text-[10px] font-bold bg-neutral-100 text-neutral-600 px-1.5 py-0.5 rounded">
-                                  Score {q.sc}
-                                </span>
-                              </div>
-                              <div className="text-[11px] text-neutral-500 mt-1 flex flex-wrap items-center gap-2">
-                                <span>{PROPERTIES[state.prop][0]}</span>
-                                <span>·</span>
-                                <span className="font-semibold text-neutral-700 flex items-center gap-1">
-                                  <Car className="w-3 h-3 text-neutral-400" />
-                                  {roadDist}
-                                </span>
-                                <span>·</span>
-                                <span className="font-semibold text-emerald-800 flex items-center gap-1">
-                                  <Clock className="w-3 h-3 text-emerald-600" />
-                                  {drivingDuration}
-                                </span>
-                              </div>
-                            </div>
-
-                            <div className="text-right">
-                              <div className="font-extrabold text-sm text-neutral-900">
-                                {formatINR(q.x.e.rent)}
-                                <span className="text-[10px] font-normal text-neutral-500">/mo</span>
-                              </div>
-                              <div
-                                className={`text-[11px] font-semibold ${
-                                  q.x.sav >= 0 ? 'text-emerald-700' : 'text-red-600'
-                                }`}
-                              >
-                                {q.x.sav >= 0 ? `+${formatINR(q.x.sav)} save` : `${formatINR(q.x.sav)} loss`}
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* Card Footer badges */}
-                          <div className="mt-2.5 pt-2 border-t border-[#E2E6DD] flex items-center justify-between">
-                            <span className="text-[10px] text-neutral-400 font-medium">
-                              Total exp: {formatINR(q.x.tot)}/mo
-                            </span>
-
-                            <button
-                              type="button"
-                              onClick={(e) => handleToggleShortlist(q.i, e)}
-                              className={`text-[11px] font-semibold px-2 py-0.5 rounded-md transition-colors ${
-                                isShortlisted
-                                  ? 'bg-emerald-700 text-white'
-                                  : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200'
-                              }`}
-                            >
-                              {isShortlisted ? '✓ Shortlisted' : '+ Shortlist'}
-                            </button>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              );
-            })}
-
-            {scoredNeighbourhoods.filter((q) => q.vis).length === 0 && (
-              <div className="p-8 text-center bg-white rounded-2xl border border-[#E2E6DD]">
-                <p className="text-xs text-neutral-500">
-                  No neighbourhoods match these specific filters.
+          {/* Locality Cards List */}
+          <div className="space-y-2.5 max-h-[calc(100vh-280px)] overflow-y-auto pr-1">
+            {filteredNeighbourhoods.length === 0 ? (
+              <div className="bg-white p-8 rounded-2xl border border-[#E5EAE5] text-center space-y-2">
+                <MapPin className="w-6 h-6 text-[#5F6A63] mx-auto opacity-40" />
+                <p className="text-xs font-semibold text-[#18231E]">
+                  No matching neighbourhoods found
+                </p>
+                <p className="text-xs text-[#5F6A63]">
+                  Try clearing your search query or loosening filter limits.
                 </p>
                 <button
                   type="button"
-                  onClick={clearFilters}
-                  className="mt-3 text-xs font-semibold text-[#21442E] underline"
+                  onClick={() => handleFilterChange({ q: '', a: '', c: '' })}
+                  className="mt-2 px-3 py-1 text-xs text-[#176B50] font-semibold bg-[#E8F4EF] rounded-lg"
                 >
-                  Clear all filters
+                  Reset Filters
                 </button>
               </div>
+            ) : (
+              filteredNeighbourhoods.map((item) => {
+                const isSelected = activeNeighbourhoodId === item.i;
+                const isShortlisted = state.sel.includes(item.i);
+                const isExpanded = expandedId === item.i;
+
+                // Affordability badge
+                const badgeConfig =
+                  item.g === 0
+                    ? { label: 'Best Fit', bg: 'bg-[#E8F4EF] text-[#176B50]' }
+                    : item.g === 1
+                    ? { label: 'Consider', bg: 'bg-amber-50 text-[#B45309]' }
+                    : { label: 'Stretch', bg: 'bg-red-50 text-[#BE123C]' };
+
+                const commuteMin = item.drivingMin ?? item.x.min;
+                const commuteKm = item.roadKm ?? item.x.rd;
+
+                return (
+                  <div
+                    key={item.i}
+                    onClick={() => setActiveNeighbourhoodId(item.i)}
+                    className={`rounded-2xl border transition-all duration-150 cursor-pointer ${
+                      isSelected
+                        ? 'border-[#176B50] bg-white ring-2 ring-[#176B50]/15 shadow-sm'
+                        : 'border-[#E5EAE5] bg-white hover:border-neutral-300 shadow-xs'
+                    }`}
+                  >
+                    {/* Top Row: Name, Commute & Bookmark */}
+                    <div className="p-3.5 flex items-start justify-between gap-3">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h4 className="font-bold text-sm text-[#18231E] truncate">
+                            {item.a[0]}
+                          </h4>
+                          <span
+                            className={`text-[10px] font-bold px-2 py-0.5 rounded font-mono ${badgeConfig.bg}`}
+                          >
+                            {badgeConfig.label}
+                          </span>
+                        </div>
+
+                        {/* Commute & Distance */}
+                        <div className="flex items-center gap-3 text-xs text-[#5F6A63] mt-1">
+                          <span className="flex items-center gap-1 font-mono font-medium text-[#18231E]">
+                            <Clock className="w-3.5 h-3.5 text-[#176B50]" />
+                            {commuteMin} min
+                          </span>
+                          <span className="text-neutral-300">·</span>
+                          <span className="font-mono text-[#5F6A63]">
+                            {commuteKm} km road
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Right side: Rent & Shortlist Button */}
+                      <div className="flex items-center gap-2 shrink-0">
+                        <div className="text-right">
+                          <div className="text-[10px] uppercase font-bold text-[#5F6A63]">
+                            Rent ({PROPERTIES[state.prop]?.[0]})
+                          </div>
+                          <div className="text-xs font-bold font-mono text-[#18231E]">
+                            {formatINR(item.x.e.rent)}
+                            <span className="text-[10px] font-normal text-[#5F6A63]">/mo</span>
+                          </div>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={(e) => handleToggleShortlist(item.i, e)}
+                          title={
+                            isShortlisted
+                              ? 'Remove from shortlist'
+                              : 'Add to shortlist (up to 3)'
+                          }
+                          className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors ${
+                            isShortlisted
+                              ? 'bg-[#176B50] text-white'
+                              : 'bg-[#F8F9F7] text-[#5F6A63] hover:text-[#18231E] border border-[#E5EAE5]'
+                          }`}
+                        >
+                          <Bookmark
+                            className={`w-3.5 h-3.5 ${
+                              isShortlisted ? 'fill-current' : ''
+                            }`}
+                          />
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Progressive Disclosure Toggle */}
+                    <div className="px-3.5 pb-2.5 pt-0 flex items-center justify-between text-[11px] text-[#5F6A63] border-t border-[#E5EAE5]/60 mt-1">
+                      <span className="truncate max-w-[220px]">
+                        Surplus: <strong className="text-[#18231E] font-mono">{formatINR(item.x.sav)}/mo</strong>
+                      </span>
+
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setExpandedId(isExpanded ? null : item.i);
+                        }}
+                        className="inline-flex items-center gap-1 text-[11px] font-medium text-[#176B50] hover:underline"
+                      >
+                        <span>{isExpanded ? 'Hide Details' : 'View Breakdown'}</span>
+                        {isExpanded ? (
+                          <ChevronUp className="w-3 h-3" />
+                        ) : (
+                          <ChevronDown className="w-3 h-3" />
+                        )}
+                      </button>
+                    </div>
+
+                    {/* Expanded Progressive Details */}
+                    {isExpanded && (
+                      <div className="p-3.5 bg-[#F8F9F7] border-t border-[#E5EAE5] rounded-b-2xl space-y-2 text-xs">
+                        <div className="grid grid-cols-2 gap-2 text-[11px]">
+                          <div>
+                            <span className="text-[#5F6A63]">Food & Groceries:</span>
+                            <div className="font-mono font-bold text-[#18231E]">
+                              {formatINR(item.x.e.food)}/mo
+                            </div>
+                          </div>
+                          <div>
+                            <span className="text-[#5F6A63]">Commute Cost:</span>
+                            <div className="font-mono font-bold text-[#18231E]">
+                              {formatINR(item.x.e.trans)}/mo
+                            </div>
+                          </div>
+                          <div>
+                            <span className="text-[#5F6A63]">Utilities & Wi-Fi:</span>
+                            <div className="font-mono font-bold text-[#18231E]">
+                              {formatINR(item.x.e.util + item.x.e.net)}/mo
+                            </div>
+                          </div>
+                          <div>
+                            <span className="text-[#5F6A63]">Total Monthly Outflow:</span>
+                            <div className="font-mono font-bold text-[#18231E]">
+                              {formatINR(item.x.tot)}/mo
+                            </div>
+                          </div>
+                        </div>
+
+                        <p className="text-[11px] text-[#5F6A63] italic pt-1 border-t border-[#E5EAE5]">
+                          "{item.why}"
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                );
+              })
             )}
           </div>
         </div>
 
-        {/* Right Column: Interactive Map with Road Routes (7 cols) */}
-        <div className="lg:col-span-7 flex flex-col space-y-3">
-          {/* Small Route Information Card Near Map (Requirements 1-8) */}
-          {activeNeighbourhood && (
-            <div className="bg-white p-3.5 sm:p-4 rounded-2xl border border-[#E2E6DD] shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div className="flex items-center gap-3 min-w-0">
-                <div className="w-10 h-10 rounded-xl bg-[#21442E]/10 flex items-center justify-center text-[#21442E] shrink-0">
-                  <Navigation className="w-5 h-5" />
-                </div>
-                <div className="min-w-0">
-                  <div className="text-[10px] uppercase font-bold tracking-wider text-neutral-400">
-                    Highlighted Route · {state.wp?.name || 'Office'}
-                  </div>
-                  <div className="text-base font-extrabold text-[#19241D] truncate">
-                    {activeNeighbourhood.a[0]}
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-5 sm:gap-6 bg-neutral-50 px-4 py-2 rounded-xl border border-[#E2E6DD]/80 shrink-0">
-                {/* Road Distance */}
-                <div>
-                  <div className="text-[10px] uppercase font-bold tracking-wider text-neutral-500 flex items-center gap-1">
-                    <Car className="w-3.5 h-3.5 text-neutral-400" />
-                    <span>Road Distance</span>
-                  </div>
-                  <div className="text-base sm:text-lg font-black text-neutral-900 mt-0.5">
-                    {routeDistanceDisplay}
-                  </div>
-                </div>
-
-                <div className="h-7 w-px bg-neutral-200" />
-
-                {/* Estimated Driving Time */}
-                <div>
-                  <div className="text-[10px] uppercase font-bold tracking-wider text-neutral-500 flex items-center gap-1">
-                    <Clock className="w-3.5 h-3.5 text-emerald-600" />
-                    <span>Est. Driving Time</span>
-                  </div>
-                  <div className="text-base sm:text-lg font-black text-emerald-800 mt-0.5">
-                    {routeDurationDisplay}
-                  </div>
-                </div>
-              </div>
+        {/* RIGHT COLUMN: Large Interactive Map (7 of 12 columns) */}
+        <div className="lg:col-span-7 sticky top-20">
+          <div className="bg-white rounded-2xl border border-[#E5EAE5] shadow-xs overflow-hidden relative flex flex-col h-[620px]">
+            {/* Floating Top Map Layer Controls */}
+            <div className="absolute top-3 right-3 z-10 flex items-center gap-1.5 bg-white/95 backdrop-blur-sm p-1 rounded-xl border border-[#E5EAE5] shadow-xs text-xs font-medium">
+              <button
+                type="button"
+                onClick={() => setLayers((l) => ({ ...l, n: !l.n }))}
+                className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-colors ${
+                  layers.n
+                    ? 'bg-[#176B50] text-white shadow-xs'
+                    : 'text-[#5F6A63] hover:text-[#18231E]'
+                }`}
+              >
+                Localities
+              </button>
+              <button
+                type="button"
+                onClick={() => setLayers((l) => ({ ...l, w: !l.w }))}
+                className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-colors ${
+                  layers.w
+                    ? 'bg-[#176B50] text-white shadow-xs'
+                    : 'text-[#5F6A63] hover:text-[#18231E]'
+                }`}
+              >
+                Office
+              </button>
+              <button
+                type="button"
+                onClick={() => setLayers((l) => ({ ...l, c: !l.c }))}
+                className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-colors ${
+                  layers.c
+                    ? 'bg-[#176B50] text-white shadow-xs'
+                    : 'text-[#5F6A63] hover:text-[#18231E]'
+                }`}
+              >
+                Route
+              </button>
+              <button
+                type="button"
+                onClick={() => setLayers((l) => ({ ...l, t: !l.t }))}
+                className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-colors ${
+                  layers.t
+                    ? 'bg-[#176B50] text-white shadow-xs'
+                    : 'text-[#5F6A63] hover:text-[#18231E]'
+                }`}
+              >
+                Metro
+              </button>
             </div>
-          )}
 
-          <div className="flex-1 min-h-[500px]">
-            <MapComponent
-              city={state.city}
-              workplace={state.wp}
-              neighbourhoods={scoredNeighbourhoods}
-              selectedId={activeNeighbourhoodId}
-              shortlist={state.sel}
-              propType={state.prop}
-              layers={layers}
-              onSelectNeighbourhood={(id) => setActiveNeighbourhoodId(id)}
-              onRouteLoaded={handleRouteLoadedInternal}
-              className="h-full min-h-[500px] rounded-2xl"
-            />
+            {/* MapLibre Map Container */}
+            <div className="flex-1 w-full h-full relative">
+              <MapComponent
+                city={state.city}
+                workplace={state.wp}
+                neighbourhoods={scoredNeighbourhoods}
+                selectedId={activeNeighbourhoodId}
+                shortlist={state.sel}
+                propType={state.prop}
+                layers={layers}
+                onSelectNeighbourhood={(id) => setActiveNeighbourhoodId(id)}
+                onRouteLoaded={handleRouteLoadedInternal}
+                className="w-full h-full"
+              />
+            </div>
+
+            {/* Active Neighbourhood Floating Inspection Card */}
+            {activeNeighbourhood && (
+              <div className="absolute bottom-3 left-3 right-3 z-10 bg-white/95 backdrop-blur-md p-4 rounded-xl border border-[#E5EAE5] shadow-md flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-[#176B50]" />
+                    <h3 className="font-bold text-sm text-[#18231E] truncate">
+                      {activeNeighbourhood.a[0]}
+                    </h3>
+                    <span className="text-xs text-[#5F6A63]">
+                      ↔ {state.wp?.name || 'Office'}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-4 text-xs text-[#5F6A63] mt-1 font-mono">
+                    <span>
+                      Travel: <strong className="text-[#18231E]">{routeDurationDisplay}</strong> ({routeDistanceDisplay})
+                    </span>
+                    <span>·</span>
+                    <span>
+                      Rent: <strong className="text-[#18231E]">{formatINR(activeNeighbourhood.x.e.rent)}</strong>/mo
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    type="button"
+                    onClick={(e) => handleToggleShortlist(activeNeighbourhood.i, e)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors ${
+                      state.sel.includes(activeNeighbourhood.i)
+                        ? 'bg-[#176B50] text-white shadow-xs'
+                        : 'bg-[#F8F9F7] text-[#18231E] border border-[#E5EAE5] hover:bg-neutral-100'
+                    }`}
+                  >
+                    <Bookmark className="w-3.5 h-3.5" />
+                    <span>
+                      {state.sel.includes(activeNeighbourhood.i)
+                        ? 'Shortlisted'
+                        : 'Shortlist Area'}
+                    </span>
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
 
-      {/* Navigation Buttons */}
-      <div className="flex items-center justify-between pt-4 border-t border-[#E2E6DD]">
+      {/* Navigation Footer */}
+      <div className="flex items-center justify-between pt-4 border-t border-[#E5EAE5]">
         <button
           type="button"
           onClick={onBack}
-          className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl border border-[#E2E6DD] bg-white text-xs font-semibold text-neutral-700 hover:bg-neutral-50 transition-colors"
+          className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-semibold text-[#5F6A63] hover:text-[#18231E] hover:bg-neutral-100 transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
-          <span>Back</span>
+          <span>Back to Salary</span>
         </button>
 
         <button
           type="button"
           onClick={onNext}
-          className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-[#21442E] text-white font-semibold text-sm shadow-sm hover:bg-[#183423] transition-all"
+          className="inline-flex items-center gap-2 px-6 py-3 rounded-xl text-xs font-semibold text-white bg-[#176B50] hover:bg-[#125740] shadow-sm transition-all duration-150 active:scale-[0.98]"
         >
-          <span>
-            {state.sel.length > 0
-              ? `Continue with ${state.sel.length} selected areas`
-              : 'Continue to Lifestyle'}
-          </span>
+          <span>Configure Lifestyle & Expenses</span>
           <ArrowRight className="w-4 h-4" />
         </button>
       </div>

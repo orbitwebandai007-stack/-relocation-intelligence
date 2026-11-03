@@ -7,7 +7,15 @@ import {
   formatINR,
   getTarget,
 } from '../data/relocationData';
-import { Building2, MapPin, Wallet, PiggyBank, Home, Bookmark } from 'lucide-react';
+import {
+  MapPin,
+  Wallet,
+  PiggyBank,
+  Home,
+  Bookmark,
+  Building,
+  Compass,
+} from 'lucide-react';
 
 interface SidebarSummaryProps {
   state: RelocationState;
@@ -24,126 +32,121 @@ export const SidebarSummary: React.FC<SidebarSummaryProps> = ({ state }) => {
 
   return (
     <aside className="hidden lg:block w-80 shrink-0">
-      <div className="sticky top-24 bg-white rounded-2xl border border-[#E2E6DD] p-5 shadow-xs space-y-4">
-        <div className="flex items-center justify-between border-b border-[#E2E6DD] pb-3">
-          <h3 className="font-heading text-xs font-bold uppercase tracking-wider text-neutral-500">
-            Your Plan So Far
-          </h3>
-          <span className="text-[11px] font-semibold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-full">
-            Live Estimate
+      <div className="sticky top-20 bg-white rounded-2xl border border-[#E5EAE5] p-5 shadow-xs space-y-4">
+        {/* Header */}
+        <div className="flex items-center justify-between border-b border-[#E5EAE5] pb-3">
+          <div className="flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-[#176B50]" />
+            <h3 className="text-xs font-bold uppercase tracking-wider text-[#18231E]">
+              Plan Summary
+            </h3>
+          </div>
+          <span className="text-[11px] font-mono text-[#176B50] bg-[#E8F4EF] px-2 py-0.5 rounded font-medium">
+            Live
           </span>
         </div>
 
-        <div className="space-y-3.5 text-xs">
-          {/* City & Workplace */}
-          <div className="flex items-start gap-2.5">
-            <div className="w-7 h-7 rounded-lg bg-neutral-100 flex items-center justify-center shrink-0 text-neutral-600 mt-0.5">
+        {/* Content list */}
+        <div className="space-y-4 text-xs">
+          {/* Destination & Workplace */}
+          <div className="flex items-start gap-3">
+            <div className="w-7 h-7 rounded-lg bg-[#F8F9F7] border border-[#E5EAE5] flex items-center justify-center shrink-0 text-[#176B50] mt-0.5">
               <MapPin className="w-3.5 h-3.5" />
             </div>
-            <div>
-              <div className="text-[11px] font-semibold text-neutral-400 uppercase tracking-wider">
-                Destination
+            <div className="min-w-0 flex-1">
+              <div className="text-[10px] font-bold uppercase tracking-wider text-[#5F6A63]">
+                Target City
               </div>
-              <div className="font-bold text-neutral-900 text-sm">
+              <div className="font-bold text-[#18231E] text-sm truncate">
                 {currentCity.name}
               </div>
-              <div className="text-neutral-500 text-[11px]">
-                {state.wp ? `Office in ${state.wp.name}` : 'Workplace not picked'}
+              <div className="text-[#5F6A63] text-[11px] truncate mt-0.5">
+                {state.wp ? `Office: ${state.wp.name}` : 'Select workplace hub'}
               </div>
             </div>
           </div>
 
-          {/* Monthly Income & Available Budget */}
-          <div className="flex items-start gap-2.5">
-            <div className="w-7 h-7 rounded-lg bg-emerald-50 flex items-center justify-center shrink-0 text-[#21442E] mt-0.5">
+          {/* Monthly Salary */}
+          <div className="flex items-start gap-3">
+            <div className="w-7 h-7 rounded-lg bg-[#E8F4EF] flex items-center justify-center shrink-0 text-[#176B50] mt-0.5">
               <Wallet className="w-3.5 h-3.5" />
             </div>
-            <div>
-              <div className="text-[11px] font-semibold text-neutral-400 uppercase tracking-wider">
-                Take-Home Salary
+            <div className="min-w-0 flex-1">
+              <div className="text-[10px] font-bold uppercase tracking-wider text-[#5F6A63]">
+                In-Hand Cashflow
               </div>
-              <div className="font-bold text-neutral-900 text-sm">
+              <div className="font-bold text-[#18231E] text-sm font-mono">
                 {formatINR(state.sal)}
-                <span className="text-neutral-500 text-xs font-normal">/mo</span>
+                <span className="text-[#5F6A63] text-xs font-normal">/mo</span>
               </div>
-              <div className="text-neutral-500 text-[11px]">
-                {state.com > 0 ? `${formatINR(state.com)} commitments` : 'Zero debt/commitments'}
+              <div className="text-[#5F6A63] text-[11px] mt-0.5">
+                {state.com > 0
+                  ? `${formatINR(state.com)} fixed debt/commitments`
+                  : 'Zero existing debt'}
               </div>
             </div>
           </div>
 
-          {/* Savings Target */}
-          <div className="flex items-start gap-2.5">
-            <div className="w-7 h-7 rounded-lg bg-amber-50 flex items-center justify-center shrink-0 text-amber-700 mt-0.5">
+          {/* Target Savings */}
+          <div className="flex items-start gap-3">
+            <div className="w-7 h-7 rounded-lg bg-[#F8F9F7] border border-[#E5EAE5] flex items-center justify-center shrink-0 text-[#B45309] mt-0.5">
               <PiggyBank className="w-3.5 h-3.5" />
             </div>
-            <div>
-              <div className="text-[11px] font-semibold text-neutral-400 uppercase tracking-wider">
+            <div className="min-w-0 flex-1">
+              <div className="text-[10px] font-bold uppercase tracking-wider text-[#5F6A63]">
                 Target Savings
               </div>
-              <div className="font-semibold text-neutral-900">
+              <div className="font-semibold text-[#18231E] font-mono">
                 {state.tm === 'target'
                   ? `${formatINR(state.tgt)}/mo`
-                  : 'Calculate maximum'}
+                  : 'Maximize surplus'}
               </div>
-              <div className="text-neutral-500 text-[11px]">
-                Housing budget: ~{formatINR(Math.max(0, availableBudget))}/mo
+              <div className="text-[#5F6A63] text-[11px] mt-0.5">
+                Max housing budget: ~{formatINR(Math.max(0, availableBudget))}/mo
               </div>
             </div>
           </div>
 
-          {/* Accommodation & Lifestyle */}
-          <div className="flex items-start gap-2.5">
-            <div className="w-7 h-7 rounded-lg bg-neutral-100 flex items-center justify-center shrink-0 text-neutral-600 mt-0.5">
+          {/* Lifestyle configuration */}
+          <div className="flex items-start gap-3">
+            <div className="w-7 h-7 rounded-lg bg-[#F8F9F7] border border-[#E5EAE5] flex items-center justify-center shrink-0 text-[#18231E] mt-0.5">
               <Home className="w-3.5 h-3.5" />
             </div>
-            <div>
-              <div className="text-[11px] font-semibold text-neutral-400 uppercase tracking-wider">
-                Stay & Lifestyle
+            <div className="min-w-0 flex-1">
+              <div className="text-[10px] font-bold uppercase tracking-wider text-[#5F6A63]">
+                Accommodation & Living
               </div>
-              <div className="font-semibold text-neutral-900">
-                {PROPERTIES[state.prop][0]}
+              <div className="font-semibold text-[#18231E] truncate">
+                {PROPERTIES[state.prop]?.[0] || '1 BHK'}
               </div>
-              <div className="text-neutral-500 text-[11px]">
-                {LIFESTYLE_TIERS[state.life].label} · Max {state.maxc} min commute
+              <div className="text-[#5F6A63] text-[11px] mt-0.5">
+                {LIFESTYLE_TIERS[state.life]?.label || 'Moderate'} tier lifestyle
               </div>
             </div>
           </div>
 
           {/* Shortlisted Localities */}
-          <div className="flex items-start gap-2.5 pt-2 border-t border-[#E2E6DD]">
-            <div className="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center shrink-0 text-blue-700 mt-0.5">
-              <Bookmark className="w-3.5 h-3.5" />
-            </div>
-            <div className="w-full">
-              <div className="text-[11px] font-semibold text-neutral-400 uppercase tracking-wider flex justify-between">
-                <span>Shortlist</span>
-                <span>{state.sel.length}/3</span>
+          {shortlistedNames.length > 0 && (
+            <div className="pt-3 border-t border-[#E5EAE5]">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-[#5F6A63]">
+                  Shortlisted ({shortlistedNames.length}/3)
+                </span>
+                <Bookmark className="w-3.5 h-3.5 text-[#176B50]" />
               </div>
-              {shortlistedNames.length > 0 ? (
-                <ul className="mt-1 space-y-1">
-                  {shortlistedNames.map((name, i) => (
-                    <li
-                      key={i}
-                      className="font-medium text-neutral-800 text-[11px] flex items-center gap-1.5"
-                    >
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
-                      <span>{name}</span>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <div className="text-neutral-400 text-[11px] italic mt-0.5">
-                  Top-ranked neighbourhood will be used automatically.
-                </div>
-              )}
+              <div className="space-y-1.5">
+                {shortlistedNames.map((name) => (
+                  <div
+                    key={name}
+                    className="p-2 rounded-lg bg-[#F8F9F7] border border-[#E5EAE5] text-xs font-medium text-[#18231E] flex items-center justify-between"
+                  >
+                    <span className="truncate">{name}</span>
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#176B50]" />
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
-        </div>
-
-        {/* Disclaimer snippet */}
-        <div className="p-3 bg-neutral-50 rounded-xl text-[10px] text-neutral-500 leading-normal border border-[#E2E6DD]">
-          <span className="font-semibold text-neutral-700">Prototype benchmark:</span> Figures are illustrative estimates for planning guidance.
+          )}
         </div>
       </div>
     </aside>

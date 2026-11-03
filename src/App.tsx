@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { RelocationState, ScoredNeighbourhood } from './types';
+import { CityKey, MapLayersState, RelocationState, ScoredNeighbourhood } from './types';
 import {
   CITIES,
   INITIAL_STATE,
@@ -8,15 +8,11 @@ import {
 } from './data/relocationData';
 import { RouteInfo, getDrivingRoute } from './services/routingService';
 import { Header } from './components/Header';
-import { Stepper } from './components/Stepper';
-import { SidebarSummary } from './components/SidebarSummary';
+import { Footer } from './components/Footer';
 import { LandingPage } from './components/LandingPage';
-import { Step1Location } from './components/Step1Location';
-import { Step2Salary } from './components/Step2Salary';
-import { Step3Neighbourhoods } from './components/Step3Neighbourhoods';
-import { Step4Lifestyle } from './components/Step4Lifestyle';
-import { Step5Analysis } from './components/Step5Analysis';
-import { Step6Report } from './components/Step6Report';
+import { MapComponent } from './components/MapComponent';
+import { PlannerPanel } from './components/PlannerPanel';
+import { Compass } from 'lucide-react';
 
 export default function App() {
   const [state, setState] = useState<RelocationState>(() => {
@@ -54,7 +50,6 @@ export default function App() {
       st: stepNumber,
       max: Math.max(prev.max, stepNumber),
     }));
-    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleReset = () => {
@@ -138,122 +133,114 @@ export default function App() {
 
   const isLanding = state.v === 'land';
 
+  // Map layer controls & panel visibility for the Lamar map-first planner layout
+  const [layers, setLayers] = useState<MapLayersState>({
+    n: true, // Neighbourhood markers
+    w: true, // Workplace marker
+    c: true, // Commute routes
+    r: true, // Rent price tags
+    t: true, // Transit metro stations
+  });
+  const [isPanelVisible, setIsPanelVisible] = useState(true);
+
+  // Quick city change handler
+  const handleSelectCity = (cityKey: CityKey) => {
+    const defaultHub = CITIES[cityKey].hubs[0];
+    updateState({
+      city: cityKey,
+      wp: {
+        name: defaultHub[0],
+        lat: defaultHub[1],
+        lng: defaultHub[2],
+      },
+      sel: [],
+      f: { ...state.f, q: '' },
+    });
+  };
+
   return (
-    <div className="min-h-screen flex flex-col bg-[#F8F9F5] text-[#1E231F] selection:bg-[#21442E]/15">
+    <div className="min-h-screen flex flex-col bg-[#F8F9F7] text-[#18231E] selection:bg-[#176B50]/15 selection:text-[#176B50]">
       {/* Top Application Header */}
       <Header
         fromCity={state.from}
         city={state.city}
         workplace={state.wp}
         currentStep={state.st}
+        maxStep={state.max}
         isLanding={isLanding}
         onGoLanding={() => updateState({ v: 'land' })}
+        onGoStep={goToStep}
+        onSelectCity={handleSelectCity}
         onReset={handleReset}
       />
 
-      {/* 6-Step Visual Navigation Bar */}
-      {!isLanding && (
-        <Stepper
-          currentStep={state.st}
-          maxStep={state.max}
-          onGoStep={goToStep}
-        />
-      )}
-
-      {/* Main Workspace Body */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
-        {isLanding ? (
+      {/* Main Experience Router */}
+      {isLanding ? (
+        /* 1. UBER-INSPIRED LANDING PAGE */
+        <main className="flex-1 w-full mx-auto">
           <LandingPage
             state={state}
             onStartPlanning={() => goToStep(0)}
             onResumePlanning={() => goToStep(state.st)}
           />
-        ) : (
-          <div className="flex flex-col lg:flex-row gap-8 items-start">
-            {/* Step Content Card */}
-            <div className="flex-1 w-full min-w-0">
-              {state.st === 0 && (
-                <Step1Location
-                  state={state}
-                  onUpdateState={updateState}
-                  onNext={() => goToStep(1)}
-                />
-              )}
 
-              {state.st === 1 && (
-                <Step2Salary
-                  state={state}
-                  onUpdateState={updateState}
-                  onNext={() => goToStep(2)}
-                  onBack={() => goToStep(0)}
-                />
-              )}
+          {/* Minimal SaaS Style Footer */}
+          <Footer
+            onStartPlanning={() => goToStep(0)}
+            onReset={handleReset}
+          />
+        </main>
+      ) : (
+        /* 2. LAMAR-INSPIRED MAP-FIRST DASHBOARD */
+        <div className="relative flex-1 w-full h-[calc(100vh-64px)] sm:h-[calc(100vh-80px)] overflow-hidden">
+          {/* Main Map Canvas (approx 70-75% width or full viewport background) */}
+          <div className="absolute inset-0 z-0">
+            <MapComponent
+              city={state.city}
+              workplace={state.wp}
+              neighbourhoods={scoredNeighbourhoods}
+              selectedId={chosenNeighbourhood.i}
+              shortlist={state.sel}
+              propType={state.prop}
+              layers={layers}
+              currentStep={state.st}
+              onSelectNeighbourhood={(id) => {
+                updateState({
+                  sel: [id, ...state.sel.filter((x) => x !== id)].slice(0, 3),
+                });
+                setIsPanelVisible(true);
+              }}
+              onRouteLoaded={handleRouteLoaded}
+              isPanelVisible={isPanelVisible}
+              onTogglePanel={() => setIsPanelVisible(!isPanelVisible)}
+              className="h-full w-full"
+            />
+          </div>
 
-              {state.st === 2 && (
-                <Step3Neighbourhoods
-                  state={state}
-                  scoredNeighbourhoods={scoredNeighbourhoods}
-                  onUpdateState={updateState}
-                  onNext={() => goToStep(3)}
-                  onBack={() => goToStep(1)}
-                  onRouteLoaded={handleRouteLoaded}
-                />
-              )}
-
-              {state.st === 3 && (
-                <Step4Lifestyle
-                  state={state}
-                  onUpdateState={updateState}
-                  onNext={() => goToStep(4)}
-                  onBack={() => goToStep(2)}
-                />
-              )}
-
-              {state.st === 4 && (
-                <Step5Analysis
-                  state={state}
-                  chosenNeighbourhood={chosenNeighbourhood}
-                  onUpdateState={updateState}
-                  onNext={() => goToStep(5)}
-                  onBack={() => goToStep(3)}
-                />
-              )}
-
-              {state.st === 5 && (
-                <Step6Report
-                  state={state}
-                  chosenNeighbourhood={chosenNeighbourhood}
-                  scoredNeighbourhoods={scoredNeighbourhoods}
-                  onUpdateState={updateState}
-                  onGoStep={goToStep}
-                />
-              )}
+          {/* Floating Right Interaction Panel (Responsive mobile full width, desktop sidebar) */}
+          {isPanelVisible ? (
+            <div className="absolute top-2 right-2 bottom-2 left-2 sm:left-auto sm:top-3 sm:right-3 sm:bottom-3 w-auto sm:w-[420px] lg:w-[450px] z-20 rounded-2xl border border-[#E5EAE5] shadow-[0_8px_30px_rgb(0,0,0,0.08)] bg-white overflow-hidden flex flex-col transition-all duration-200 animate-in fade-in slide-in-from-right-4">
+              <PlannerPanel
+                state={state}
+                scoredNeighbourhoods={scoredNeighbourhoods}
+                chosenNeighbourhood={chosenNeighbourhood}
+                onUpdateState={updateState}
+                onGoStep={goToStep}
+              />
             </div>
-
-            {/* Sticky Sidebar: Shown on steps 0, 1, 3, 4 (excluded on Step 2 map & Step 5 report for maximum screen width) */}
-            {(state.st === 0 ||
-              state.st === 1 ||
-              state.st === 3 ||
-              state.st === 4) && <SidebarSummary state={state} />}
-          </div>
-        )}
-      </main>
-
-      {/* Clean Global Footer */}
-      <footer className="border-t border-[#E2E6DD] bg-white py-6 mt-12 no-print">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-neutral-500">
-          <div className="flex items-center gap-2">
-            <span className="font-bold text-neutral-900">
-              Relocation Intelligence
-            </span>
-            <span>·</span>
-            <span>Spatial financial modeling for Bengaluru & Delhi NCR</span>
-          </div>
-          <div className="text-neutral-400 text-center sm:text-right">
-            Illustrative estimates · Benchmarked Nov 2026 · Built for professional relocation decisions
-          </div>
+          ) : (
+            /* Floating Button to re-open decision panel when hidden */
+            <button
+              type="button"
+              onClick={() => setIsPanelVisible(true)}
+              className="absolute bottom-5 right-5 z-20 inline-flex items-center gap-2 px-5 py-3 rounded-full bg-[#176B50] hover:bg-[#125740] text-white text-xs font-semibold shadow-xl transition-all active:scale-95 duration-150"
+            >
+              <Compass className="w-4 h-4 text-[#C8E6A0]" />
+              <span>Open Decision Panel</span>
+            </button>
+          )}
         </div>
-      </footer>
+      )}
     </div>
   );
 }

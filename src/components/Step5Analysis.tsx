@@ -31,6 +31,8 @@ import {
   CheckCircle,
   AlertTriangle,
   XCircle,
+  ShieldCheck,
+  Check,
 } from 'lucide-react';
 
 interface Step5AnalysisProps {
@@ -71,35 +73,32 @@ export const Step5Analysis: React.FC<Step5AnalysisProps> = ({
     currentEst.sav < 0
       ? {
           label: 'Over Budget',
-          bg: 'bg-red-100 text-red-800 border-red-200',
-          icon: XCircle,
+          badgeClass: 'bg-red-50 text-[#BE123C] border-red-200',
           desc: `Expenses and commitments exceed your salary by ${formatINR(
             Math.abs(currentEst.sav)
           )}/mo.`,
         }
       : currentEst.sav < targetSavings
       ? {
-          label: 'Tight',
-          bg: 'bg-amber-100 text-amber-800 border-amber-200',
-          icon: AlertTriangle,
-          desc: `Estimated savings of ${formatINR(
+          label: 'Below Target Savings',
+          badgeClass: 'bg-amber-50 text-[#B45309] border-amber-200',
+          desc: `Surplus of ${formatINR(
             currentEst.sav
-          )}/mo fall short of your ${formatINR(targetSavings)}/mo target.`,
+          )}/mo is below your target of ${formatINR(targetSavings)}/mo.`,
         }
       : {
-          label: 'Comfortable',
-          bg: 'bg-emerald-100 text-emerald-800 border-emerald-200',
-          icon: CheckCircle,
-          desc: `Estimated savings of ${formatINR(
+          label: 'Healthy Financial Surplus',
+          badgeClass: 'bg-[#E8F4EF] text-[#176B50] border-[#176B50]/20',
+          desc: `You meet all expenses and save ${formatINR(
             currentEst.sav
-          )}/mo comfortably hit your ${formatINR(targetSavings)} target.`,
+          )}/mo (${savingsRate}% savings rate).`,
         };
 
-  const handleExpenseChange = (category: ExpenseCategory, val: number) => {
+  const handleExpenseOverride = (cat: ExpenseCategory, value: number) => {
     onUpdateState({
       ov: {
         ...state.ov,
-        [category]: Math.max(0, val),
+        [cat]: Math.max(0, value),
       },
     });
   };
@@ -108,320 +107,361 @@ export const Step5Analysis: React.FC<Step5AnalysisProps> = ({
     onUpdateState({ ov: {} });
   };
 
-  const StatusIcon = budgetStatus.icon;
+  const hasOverrides = Object.keys(state.ov).length > 0;
+
+  // Multi-year savings projections
+  const oneYearSavings = Math.max(0, currentEst.sav * 12);
+  const threeYearSavings = Math.max(0, currentEst.sav * 36);
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 max-w-4xl">
       {/* Step Header */}
       <div>
-        <div className="text-xs font-bold uppercase tracking-widest text-emerald-800 mb-1">
-          05 · Financial Modeling & Simulation
+        <div className="text-xs font-mono font-semibold text-[#176B50] mb-1.5 flex items-center gap-1.5">
+          <span>05</span>
+          <span className="text-neutral-300">/</span>
+          <span>BUDGET BREAKDOWN & SCENARIO ANALYSIS</span>
         </div>
-        <h2 className="text-2xl sm:text-3xl font-extrabold text-[#19241D] tracking-tight">
-          Here’s what your life could cost.
+        <h2 className="text-2xl sm:text-3xl font-bold text-[#18231E] font-heading tracking-tight">
+          Financial Realities in {chosenNeighbourhood.a[0]}
         </h2>
-        <p className="mt-1 text-sm text-neutral-600">
-          Modeled for <strong className="text-neutral-900">{chosenNeighbourhood.a[0]}</strong>, {CITIES[state.city].name} · Office: {wp.name} · {PROPERTIES[state.prop][0]} · {LIFESTYLE_TIERS[state.life].label}.
+        <p className="mt-2 text-sm text-[#5F6A63] leading-relaxed">
+          Comprehensive cashflow model reflecting your chosen accommodation ({PROPERTIES[state.prop]?.[0]}), daily commute, and dining habits. Adjust expense sliders below to test what-if scenarios.
         </p>
       </div>
 
-      {/* Top 4 Key Metrics */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Take-Home */}
-        <div className="bg-white p-5 rounded-2xl border border-[#E2E6DD] shadow-xs">
-          <div className="text-[11px] font-bold uppercase tracking-wider text-neutral-400">
-            Take-Home Salary
+      {/* Top Level Financial Summary KPI Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Card 1: Salary */}
+        <div className="bg-white p-5 rounded-2xl border border-[#E5EAE5] shadow-xs space-y-1">
+          <div className="text-[11px] font-bold uppercase tracking-wider text-[#5F6A63]">
+            Monthly In-Hand
           </div>
-          <div className="text-2xl sm:text-3xl font-extrabold text-neutral-900 font-heading mt-1">
+          <div className="text-2xl font-bold font-mono text-[#18231E]">
             {formatINR(state.sal)}
           </div>
-          <div className="text-[11px] text-neutral-500 mt-1">
-            Net monthly income
-          </div>
+          <div className="text-xs text-[#5F6A63]">Net take-home income</div>
         </div>
 
-        {/* Est. Total Expenses */}
-        <div className="bg-white p-5 rounded-2xl border border-[#E2E6DD] shadow-xs">
-          <div className="text-[11px] font-bold uppercase tracking-wider text-neutral-400">
-            Est. Monthly Outflow
+        {/* Card 2: Total Living Expenses */}
+        <div className="bg-white p-5 rounded-2xl border border-[#E5EAE5] shadow-xs space-y-1">
+          <div className="text-[11px] font-bold uppercase tracking-wider text-[#5F6A63]">
+            Living Outflow
           </div>
-          <div className="text-2xl sm:text-3xl font-extrabold text-neutral-900 font-heading mt-1">
-            {formatINR(currentEst.tot + state.com)}
+          <div className="text-2xl font-bold font-mono text-[#18231E]">
+            {formatINR(currentEst.tot)}
           </div>
-          <div className="text-[11px] text-neutral-500 mt-1">
-            {formatINR(currentEst.tot)} living + {formatINR(state.com)} commitments
-          </div>
+          <div className="text-xs text-[#5F6A63]">Rent + food + transit + bills</div>
         </div>
 
-        {/* Net Monthly Savings */}
-        <div className="bg-white p-5 rounded-2xl border border-[#E2E6DD] shadow-xs">
-          <div className="text-[11px] font-bold uppercase tracking-wider text-neutral-400">
-            Monthly Net Savings
+        {/* Card 3: Fixed Commitments */}
+        <div className="bg-white p-5 rounded-2xl border border-[#E5EAE5] shadow-xs space-y-1">
+          <div className="text-[11px] font-bold uppercase tracking-wider text-[#5F6A63]">
+            Fixed Commitments
+          </div>
+          <div className="text-2xl font-bold font-mono text-[#18231E]">
+            {formatINR(state.com)}
+          </div>
+          <div className="text-xs text-[#5F6A63]">Existing debt / remittances</div>
+        </div>
+
+        {/* Card 4: Net Surplus */}
+        <div className="bg-white p-5 rounded-2xl border border-[#E5EAE5] shadow-xs space-y-1">
+          <div className="text-[11px] font-bold uppercase tracking-wider text-[#5F6A63]">
+            Bankable Surplus
           </div>
           <div
-            className={`text-2xl sm:text-3xl font-extrabold font-heading mt-1 ${
-              currentEst.sav >= 0 ? 'text-emerald-700' : 'text-red-600'
+            className={`text-2xl font-bold font-mono ${
+              currentEst.sav >= 0 ? 'text-[#176B50]' : 'text-[#BE123C]'
             }`}
           >
             {formatINR(currentEst.sav)}
           </div>
-          <div className="text-[11px] text-neutral-500 mt-1">
-            Target: {formatINR(targetSavings)}/mo
-          </div>
-        </div>
-
-        {/* Savings Rate % */}
-        <div className="bg-white p-5 rounded-2xl border border-[#E2E6DD] shadow-xs">
-          <div className="text-[11px] font-bold uppercase tracking-wider text-neutral-400">
-            Savings Rate
-          </div>
-          <div className="text-2xl sm:text-3xl font-extrabold text-[#21442E] font-heading mt-1">
-            {savingsRate}%
-          </div>
-          <div className="text-[11px] text-neutral-500 mt-1">
-            of take-home salary
+          <div className="text-xs text-[#5F6A63]">
+            {savingsRate}% monthly savings rate
           </div>
         </div>
       </div>
 
-      {/* Status banner */}
+      {/* Financial Health Status Banner */}
       <div
-        className={`p-4 rounded-2xl border flex items-center justify-between gap-3 ${budgetStatus.bg}`}
+        className={`p-4 rounded-2xl border ${budgetStatus.badgeClass} flex items-center justify-between gap-4`}
       >
         <div className="flex items-center gap-2.5">
-          <StatusIcon className="w-5 h-5 shrink-0" />
-          <div className="text-xs sm:text-sm font-semibold">
-            <span className="font-extrabold uppercase mr-1.5">
-              {budgetStatus.label}:
-            </span>
-            {budgetStatus.desc}
+          <span className="w-2.5 h-2.5 rounded-full bg-current" />
+          <div>
+            <h4 className="font-bold text-xs uppercase tracking-wider">
+              {budgetStatus.label}
+            </h4>
+            <p className="text-xs mt-0.5 opacity-90">{budgetStatus.desc}</p>
           </div>
         </div>
-        <span className="hidden sm:inline-block text-[11px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-white/60">
-          Benchmark model
-        </span>
+        <div className="text-xs font-mono font-bold shrink-0">
+          Target: {formatINR(targetSavings)}/mo
+        </div>
       </div>
 
-      {/* Editable Monthly Expense Rows */}
-      <div className="bg-white p-6 rounded-2xl border border-[#E2E6DD] shadow-xs space-y-4">
-        <div className="flex items-center justify-between border-b border-[#E2E6DD] pb-3">
+      {/* Visual Cashflow Progress Bar */}
+      <div className="bg-white p-6 rounded-2xl border border-[#E5EAE5] shadow-xs space-y-4">
+        <h3 className="text-xs font-bold uppercase tracking-wider text-[#5F6A63]">
+          Cashflow Distribution
+        </h3>
+
+        {/* Stacked Bar */}
+        <div className="h-4 w-full bg-neutral-100 rounded-full overflow-hidden flex">
+          <div
+            style={{
+              width: `${Math.min(100, (currentEst.e.rent / state.sal) * 100)}%`,
+            }}
+            className="bg-[#176B50] h-full"
+            title={`Rent: ${formatINR(currentEst.e.rent)}`}
+          />
+          <div
+            style={{
+              width: `${Math.min(100, (currentEst.e.food / state.sal) * 100)}%`,
+            }}
+            className="bg-[#2D8A68] h-full"
+            title={`Food: ${formatINR(currentEst.e.food)}`}
+          />
+          <div
+            style={{
+              width: `${Math.min(100, (currentEst.e.trans / state.sal) * 100)}%`,
+            }}
+            className="bg-[#44A782] h-full"
+            title={`Commute: ${formatINR(currentEst.e.trans)}`}
+          />
+          <div
+            style={{
+              width: `${Math.min(
+                100,
+                ((currentEst.e.util + currentEst.e.net) / state.sal) * 100
+              )}%`,
+            }}
+            className="bg-[#8DA785] h-full"
+            title={`Utilities: ${formatINR(
+              currentEst.e.util + currentEst.e.net
+            )}`}
+          />
+          <div
+            style={{
+              width: `${Math.min(
+                100,
+                ((currentEst.e.pers + currentEst.e.ent + currentEst.e.oth) /
+                  state.sal) *
+                  100
+              )}%`,
+            }}
+            className="bg-neutral-300 h-full"
+            title={`Discretionary: ${formatINR(
+              currentEst.e.pers + currentEst.e.ent + currentEst.e.oth
+            )}`}
+          />
+          {currentEst.sav > 0 && (
+            <div
+              style={{
+                width: `${Math.min(100, (currentEst.sav / state.sal) * 100)}%`,
+              }}
+              className="bg-[#C8E6A0] h-full"
+              title={`Savings: ${formatINR(currentEst.sav)}`}
+            />
+          )}
+        </div>
+
+        {/* Legend */}
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-xs">
+          <div className="flex items-center gap-1.5">
+            <span className="w-2.5 h-2.5 rounded-full bg-[#176B50]" />
+            <span className="text-[#5F6A63]">Rent:</span>
+            <span className="font-mono font-bold text-[#18231E]">
+              {formatINR(currentEst.e.rent)}
+            </span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="w-2.5 h-2.5 rounded-full bg-[#2D8A68]" />
+            <span className="text-[#5F6A63]">Food:</span>
+            <span className="font-mono font-bold text-[#18231E]">
+              {formatINR(currentEst.e.food)}
+            </span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="w-2.5 h-2.5 rounded-full bg-[#44A782]" />
+            <span className="text-[#5F6A63]">Commute:</span>
+            <span className="font-mono font-bold text-[#18231E]">
+              {formatINR(currentEst.e.trans)}
+            </span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="w-2.5 h-2.5 rounded-full bg-[#8DA785]" />
+            <span className="text-[#5F6A63]">Utilities & Wi-Fi:</span>
+            <span className="font-mono font-bold text-[#18231E]">
+              {formatINR(currentEst.e.util + currentEst.e.net)}
+            </span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="w-2.5 h-2.5 rounded-full bg-[#C8E6A0]" />
+            <span className="text-[#5F6A63]">Net Savings:</span>
+            <span className="font-mono font-bold text-[#176B50]">
+              {formatINR(currentEst.sav)}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Interactive Expense Sliders (What-If Simulator) */}
+      <div className="bg-white p-6 rounded-2xl border border-[#E5EAE5] shadow-xs space-y-6">
+        <div className="flex items-center justify-between">
           <div>
-            <h3 className="font-heading font-bold text-base text-neutral-900">
-              Personalized Expense Breakdown
+            <h3 className="text-xs font-bold uppercase tracking-wider text-[#5F6A63]">
+              Interactive Scenario Overrides
             </h3>
-            <p className="text-xs text-neutral-500">
-              Adjust any category to reflect your actual spending habits.
+            <p className="text-xs text-[#5F6A63] mt-0.5">
+              Customize benchmark figures to reflect specific rental quotes or known bills.
             </p>
           </div>
-          {Object.keys(state.ov).length > 0 && (
+          {hasOverrides && (
             <button
               type="button"
               onClick={handleResetOverrides}
-              className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 px-3 py-1.5 rounded-lg transition-colors"
+              className="inline-flex items-center gap-1 text-xs font-medium text-[#176B50] hover:underline"
             >
               <RotateCcw className="w-3.5 h-3.5" />
-              <span>Reset custom edits</span>
+              <span>Reset to Benchmarks</span>
             </button>
           )}
         </div>
 
-        <div className="space-y-3 pt-2">
-          {(Object.keys(EXPENSE_CATEGORIES) as ExpenseCategory[]).map((catKey) => {
-            const amount = currentEst.e[catKey];
-            const pct =
-              currentEst.tot > 0
-                ? Math.round((amount / currentEst.tot) * 100)
-                : 0;
-
-            return (
-              <div
-                key={catKey}
-                className="grid grid-cols-12 items-center gap-3 py-1.5"
-              >
-                {/* Category Label */}
-                <div className="col-span-4 sm:col-span-3 text-xs font-semibold text-neutral-800">
-                  {EXPENSE_CATEGORIES[catKey]}
-                </div>
-
-                {/* Progress Bar */}
-                <div className="col-span-5 sm:col-span-6 flex items-center gap-2">
-                  <div className="w-full bg-neutral-100 h-2 rounded-full overflow-hidden">
-                    <div
-                      className="bg-[#21442E] h-2 rounded-full transition-all duration-300"
-                      style={{ width: `${Math.min(100, Math.max(0, pct))}%` }}
-                    />
-                  </div>
-                  <span className="w-10 text-[11px] font-mono text-neutral-400 text-right">
-                    {pct}%
-                  </span>
-                </div>
-
-                {/* Input Number */}
-                <div className="col-span-3 sm:col-span-3 flex justify-end">
-                  <div className="relative w-28">
-                    <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-semibold text-neutral-400">
-                      ₹
-                    </span>
-                    <input
-                      type="number"
-                      min="0"
-                      step="250"
-                      value={amount}
-                      onChange={(e) =>
-                        handleExpenseChange(catKey, Number(e.target.value))
-                      }
-                      className="w-full pl-6 pr-2.5 py-1 text-right text-xs font-bold text-neutral-900 bg-neutral-50 border border-[#E2E6DD] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#21442E]/20"
-                    />
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Multi-Year Savings Projections */}
-      <div className="bg-[#FAFBF8] p-5 rounded-2xl border border-[#E2E6DD] space-y-3">
-        <h3 className="text-xs font-bold uppercase tracking-wider text-neutral-500">
-          Savings Wealth Projections (Unchanged Expenses)
-        </h3>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <div className="bg-white p-4 rounded-xl border border-[#E2E6DD]">
-            <div className="text-[11px] text-neutral-500 font-medium">1 Month</div>
-            <div className="text-lg font-bold text-neutral-900 mt-0.5">
-              {formatINR(currentEst.sav)}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Rent Slider */}
+          <div className="space-y-2">
+            <div className="flex justify-between text-xs">
+              <span className="font-semibold text-[#18231E]">Monthly Rent</span>
+              <span className="font-mono font-bold text-[#18231E]">
+                {formatINR(currentEst.e.rent)}
+              </span>
             </div>
-            <div className="text-[10px] text-neutral-400">Monthly bankable surplus</div>
+            <input
+              type="range"
+              min="5000"
+              max="80000"
+              step="1000"
+              value={currentEst.e.rent}
+              onChange={(e) => handleExpenseOverride('rent', Number(e.target.value))}
+              className="w-full h-2 bg-neutral-200 rounded-lg cursor-pointer"
+            />
           </div>
-          <div className="bg-white p-4 rounded-xl border border-[#E2E6DD]">
-            <div className="text-[11px] text-neutral-500 font-medium">1 Year (12 Months)</div>
-            <div className="text-lg font-bold text-emerald-800 mt-0.5">
-              {formatINR(currentEst.sav * 12)}
+
+          {/* Food Slider */}
+          <div className="space-y-2">
+            <div className="flex justify-between text-xs">
+              <span className="font-semibold text-[#18231E]">Food & Dining</span>
+              <span className="font-mono font-bold text-[#18231E]">
+                {formatINR(currentEst.e.food)}
+              </span>
             </div>
-            <div className="text-[10px] text-neutral-400">Cumulative 1-year corpus</div>
+            <input
+              type="range"
+              min="4000"
+              max="35000"
+              step="1000"
+              value={currentEst.e.food}
+              onChange={(e) => handleExpenseOverride('food', Number(e.target.value))}
+              className="w-full h-2 bg-neutral-200 rounded-lg cursor-pointer"
+            />
           </div>
-          <div className="bg-white p-4 rounded-xl border border-[#E2E6DD]">
-            <div className="text-[11px] text-neutral-500 font-medium">2 Years (24 Months)</div>
-            <div className="text-lg font-bold text-emerald-800 mt-0.5">
-              {formatINR(currentEst.sav * 24)}
+
+          {/* Commute Slider */}
+          <div className="space-y-2">
+            <div className="flex justify-between text-xs">
+              <span className="font-semibold text-[#18231E]">Commute & Transit</span>
+              <span className="font-mono font-bold text-[#18231E]">
+                {formatINR(currentEst.e.trans)}
+              </span>
             </div>
-            <div className="text-[10px] text-neutral-400">Cumulative 2-year corpus</div>
+            <input
+              type="range"
+              min="1000"
+              max="25000"
+              step="500"
+              value={currentEst.e.trans}
+              onChange={(e) => handleExpenseOverride('trans', Number(e.target.value))}
+              className="w-full h-2 bg-neutral-200 rounded-lg cursor-pointer"
+            />
+          </div>
+
+          {/* Utilities Slider */}
+          <div className="space-y-2">
+            <div className="flex justify-between text-xs">
+              <span className="font-semibold text-[#18231E]">Utilities & Wi-Fi</span>
+              <span className="font-mono font-bold text-[#18231E]">
+                {formatINR(currentEst.e.util + currentEst.e.net)}
+              </span>
+            </div>
+            <input
+              type="range"
+              min="1000"
+              max="15000"
+              step="500"
+              value={currentEst.e.util + currentEst.e.net}
+              onChange={(e) => handleExpenseOverride('util', Number(e.target.value))}
+              className="w-full h-2 bg-neutral-200 rounded-lg cursor-pointer"
+            />
           </div>
         </div>
       </div>
 
-      {/* What-If Simulator Bar */}
-      <div className="bg-white p-5 rounded-2xl border border-[#E2E6DD] shadow-xs space-y-3">
+      {/* Multi-Year Wealth Accumulation Projections */}
+      <div className="bg-white p-6 rounded-2xl border border-[#E5EAE5] shadow-xs space-y-4">
         <div className="flex items-center gap-2">
-          <Sliders className="w-4 h-4 text-emerald-800" />
-          <h3 className="font-heading font-bold text-sm text-neutral-900">
-            What-If Scenario Simulator
+          <TrendingUp className="w-4 h-4 text-[#176B50]" />
+          <h3 className="text-xs font-bold uppercase tracking-wider text-[#18231E]">
+            Cumulative Wealth Accumulation (No Inflation Assumption)
           </h3>
         </div>
-        <p className="text-xs text-neutral-500">
-          Simulate how lifestyle changes affect your monthly surplus. Note: changing simulator switches will reset manual edits.
-        </p>
 
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-1">
-          {/* Property */}
-          <div>
-            <label className="block text-[10px] font-bold uppercase text-neutral-400 mb-1">
-              Property
-            </label>
-            <select
-              value={state.prop}
-              onChange={(e) =>
-                onUpdateState({ prop: e.target.value as PropertyType, ov: {} })
-              }
-              className="w-full p-2 bg-neutral-50 border border-[#E2E6DD] rounded-lg text-xs font-medium text-neutral-800"
-            >
-              {(Object.keys(PROPERTIES) as PropertyType[]).map((p) => (
-                <option key={p} value={p}>
-                  {PROPERTIES[p][0]}
-                </option>
-              ))}
-            </select>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="p-4 rounded-xl bg-[#F8F9F7] border border-[#E5EAE5]">
+            <div className="text-[11px] font-bold uppercase tracking-wider text-[#5F6A63]">
+              1-Year Bankable Surplus
+            </div>
+            <div className="text-2xl font-bold font-mono text-[#176B50] mt-1">
+              {formatINR(oneYearSavings)}
+            </div>
+            <div className="text-xs text-[#5F6A63] mt-1">
+              Cumulative cash after all rent and lifestyle costs
+            </div>
           </div>
 
-          {/* Food */}
-          <div>
-            <label className="block text-[10px] font-bold uppercase text-neutral-400 mb-1">
-              Food Habits
-            </label>
-            <select
-              value={state.food}
-              onChange={(e) =>
-                onUpdateState({ food: e.target.value as FoodHabit, ov: {} })
-              }
-              className="w-full p-2 bg-neutral-50 border border-[#E2E6DD] rounded-lg text-xs font-medium text-neutral-800"
-            >
-              {(Object.keys(FOOD_HABITS) as FoodHabit[]).map((f) => (
-                <option key={f} value={f}>
-                  {FOOD_HABITS[f]}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Transit */}
-          <div>
-            <label className="block text-[10px] font-bold uppercase text-neutral-400 mb-1">
-              Commute Mode
-            </label>
-            <select
-              value={state.tr}
-              onChange={(e) =>
-                onUpdateState({ tr: e.target.value as TransportMode, ov: {} })
-              }
-              className="w-full p-2 bg-neutral-50 border border-[#E2E6DD] rounded-lg text-xs font-medium text-neutral-800"
-            >
-              {(Object.keys(TRANSPORT_MODES) as TransportMode[]).map((t) => (
-                <option key={t} value={t}>
-                  {TRANSPORT_MODES[t]}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Lifestyle */}
-          <div>
-            <label className="block text-[10px] font-bold uppercase text-neutral-400 mb-1">
-              Comfort Tier
-            </label>
-            <select
-              value={state.life}
-              onChange={(e) =>
-                onUpdateState({ life: e.target.value as LifestyleTier, ov: {} })
-              }
-              className="w-full p-2 bg-neutral-50 border border-[#E2E6DD] rounded-lg text-xs font-medium text-neutral-800"
-            >
-              {(Object.keys(LIFESTYLE_TIERS) as LifestyleTier[]).map((l) => (
-                <option key={l} value={l}>
-                  {LIFESTYLE_TIERS[l].label}
-                </option>
-              ))}
-            </select>
+          <div className="p-4 rounded-xl bg-[#F8F9F7] border border-[#E5EAE5]">
+            <div className="text-[11px] font-bold uppercase tracking-wider text-[#5F6A63]">
+              3-Year Cumulative Capital
+            </div>
+            <div className="text-2xl font-bold font-mono text-[#176B50] mt-1">
+              {formatINR(threeYearSavings)}
+            </div>
+            <div className="text-xs text-[#5F6A63] mt-1">
+              Available for investment portfolio or home downpayment
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Navigation Buttons */}
-      <div className="flex items-center justify-between pt-4 border-t border-[#E2E6DD]">
+      {/* Navigation Footer */}
+      <div className="flex items-center justify-between pt-4">
         <button
           type="button"
           onClick={onBack}
-          className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl border border-[#E2E6DD] bg-white text-xs font-semibold text-neutral-700 hover:bg-neutral-50 transition-colors"
+          className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-semibold text-[#5F6A63] hover:text-[#18231E] hover:bg-neutral-100 transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
-          <span>Back</span>
+          <span>Back to Lifestyle</span>
         </button>
 
         <button
           type="button"
           onClick={onNext}
-          className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-[#21442E] text-white font-semibold text-sm shadow-sm hover:bg-[#183423] transition-all"
+          className="inline-flex items-center gap-2 px-6 py-3 rounded-xl text-xs font-semibold text-white bg-[#176B50] hover:bg-[#125740] shadow-sm transition-all duration-150 active:scale-[0.98]"
         >
-          <span>See my relocation report</span>
+          <span>Generate Executive Report</span>
           <ArrowRight className="w-4 h-4" />
         </button>
       </div>

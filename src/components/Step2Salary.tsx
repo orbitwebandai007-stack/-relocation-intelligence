@@ -9,6 +9,7 @@ import {
   ArrowLeft,
   Info,
   BadgePercent,
+  Check,
 } from 'lucide-react';
 
 interface Step2SalaryProps {
@@ -30,248 +31,268 @@ export const Step2Salary: React.FC<Step2SalaryProps> = ({
   const isTargetTooHigh = state.tm === 'target' && state.tgt >= state.sal;
   const isInvalid = isSalaryTooLow || isTargetTooHigh;
 
-  const quickSalaries = [35000, 50000, 75000, 100000, 150000, 200000];
+  const quickSalaries = [40000, 60000, 85000, 120000, 160000, 220000];
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 max-w-3xl">
       {/* Step Header */}
       <div>
-        <div className="text-xs font-bold uppercase tracking-widest text-emerald-800 mb-1">
-          02 · Income & Target Savings
+        <div className="text-xs font-mono font-semibold text-[#176B50] mb-1.5 flex items-center gap-1.5">
+          <span>02</span>
+          <span className="text-neutral-300">/</span>
+          <span>INCOME & SAVINGS TARGET</span>
         </div>
-        <h2 className="text-2xl sm:text-3xl font-extrabold text-[#19241D] tracking-tight">
-          Let’s understand your income.
+        <h2 className="text-2xl sm:text-3xl font-bold text-[#18231E] font-heading tracking-tight">
+          Let’s establish your monthly cashflow.
         </h2>
-        <p className="mt-1 text-sm text-neutral-600 max-w-2xl">
-          Your take-home salary is the net cash credited to your bank account after income tax, provident fund (PF), and deductions. Enter monthly take-home — not annual CTC.
+        <p className="mt-2 text-sm text-[#5F6A63] leading-relaxed">
+          Base your relocation calculations on real monthly take-home salary—the actual cash hitting your bank account after income tax, employee PF, and professional tax.
         </p>
       </div>
 
       {/* Salary Input Card */}
-      <div className="bg-white p-6 rounded-2xl border border-[#E2E6DD] shadow-xs space-y-6">
+      <div className="bg-white p-6 rounded-2xl border border-[#E5EAE5] shadow-xs space-y-6">
         <div>
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
-            <label className="text-xs font-bold uppercase tracking-wider text-neutral-500">
-              Monthly take-home salary
+            <label className="text-xs font-bold uppercase tracking-wider text-[#5F6A63]">
+              Monthly In-Hand Take-Home
             </label>
-            <div className="text-2xl sm:text-3xl font-extrabold text-[#21442E] font-heading">
+            <div className="text-2xl sm:text-3xl font-bold text-[#176B50] font-heading">
               {formatINR(state.sal)}
-              <span className="text-xs font-normal text-neutral-500"> / month</span>
+              <span className="text-xs font-normal text-[#5F6A63]"> / month</span>
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
-            <div className="relative flex-1">
-              <span className="absolute left-3.5 top-1/2 -translate-y-1/2 font-bold text-neutral-400">
-                ₹
-              </span>
-              <input
-                type="number"
-                min="10000"
-                step="1000"
-                value={state.sal}
-                onChange={(e) =>
-                  onUpdateState({ sal: Math.max(0, Number(e.target.value)) })
-                }
-                className="w-full pl-8 pr-4 py-2.5 bg-neutral-50 border border-[#E2E6DD] rounded-xl text-base font-bold text-neutral-900 focus:outline-none focus:ring-2 focus:ring-[#21442E]/20 focus:border-[#21442E]"
-              />
-            </div>
+          <div className="relative">
+            <span className="absolute left-3.5 top-1/2 -translate-y-1/2 font-bold text-[#5F6A63]">
+              ₹
+            </span>
+            <input
+              type="number"
+              min="10000"
+              step="2500"
+              value={state.sal}
+              onChange={(e) =>
+                onUpdateState({ sal: Math.max(0, Number(e.target.value)) })
+              }
+              className="w-full pl-8 pr-4 py-3 bg-[#F8F9F7] border border-[#E5EAE5] rounded-xl text-lg font-bold font-mono text-[#18231E] focus:outline-none focus:ring-2 focus:ring-[#176B50]/20 focus:border-[#176B50]"
+            />
           </div>
 
           {/* Range Slider */}
           <div className="mt-4">
             <input
               type="range"
-              min="15000"
-              max="250000"
-              step="2500"
+              min="20000"
+              max="300000"
+              step="5000"
               value={state.sal}
               onChange={(e) => onUpdateState({ sal: Number(e.target.value) })}
               className="w-full h-2 bg-neutral-200 rounded-lg cursor-pointer"
             />
-            <div className="flex justify-between text-[11px] text-neutral-400 mt-1 font-mono">
-              <span>₹15,000</span>
-              <span>₹75,000</span>
-              <span>₹1,50,000</span>
-              <span>₹2,50,000+</span>
+            <div className="flex justify-between text-[11px] text-[#5F6A63] mt-1 font-mono">
+              <span>₹20,000</span>
+              <span>₹1,00,000</span>
+              <span>₹2,00,000</span>
+              <span>₹3,00,000+</span>
             </div>
           </div>
 
           {/* Quick presets */}
-          <div className="mt-3 flex flex-wrap items-center gap-1.5">
-            <span className="text-[11px] text-neutral-400 font-medium mr-1">
-              Popular benchmarks:
-            </span>
+          <div className="flex flex-wrap items-center gap-1.5 mt-4 pt-4 border-t border-[#E5EAE5]">
+            <span className="text-[11px] text-[#5F6A63] mr-1">Presets:</span>
             {quickSalaries.map((val) => (
               <button
                 key={val}
                 type="button"
                 onClick={() => onUpdateState({ sal: val })}
-                className={`text-xs px-2.5 py-1 rounded-lg border transition-all ${
+                className={`px-3 py-1 rounded-md text-xs font-mono font-medium transition-colors ${
                   state.sal === val
-                    ? 'bg-[#21442E] text-white border-[#21442E] font-semibold'
-                    : 'bg-neutral-50 text-neutral-600 border-[#E2E6DD] hover:bg-neutral-100'
+                    ? 'bg-[#176B50] text-white'
+                    : 'bg-[#F8F9F7] text-[#5F6A63] hover:text-[#18231E] hover:bg-neutral-100 border border-[#E5EAE5]'
                 }`}
               >
                 {formatINR(val)}
               </button>
             ))}
           </div>
-
-          {isSalaryTooLow && (
-            <p className="mt-2 text-xs text-red-600 flex items-center gap-1.5">
-              <ShieldAlert className="w-3.5 h-3.5" />
-              <span>Please enter at least ₹10,000 monthly take-home.</span>
-            </p>
-          )}
         </div>
 
-        {/* Savings Target Mode */}
-        <div className="pt-6 border-t border-[#E2E6DD] space-y-4">
-          <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-neutral-500 mb-2">
-              Monthly savings goal strategy
-            </label>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <button
-                type="button"
-                onClick={() => onUpdateState({ tm: 'target' })}
-                className={`p-3.5 rounded-xl border text-left transition-all ${
-                  state.tm === 'target'
-                    ? 'border-[#21442E] bg-emerald-50/50 shadow-xs'
-                    : 'border-[#E2E6DD] bg-neutral-50 text-neutral-600 hover:bg-neutral-100'
-                }`}
-              >
-                <div className="font-bold text-xs text-neutral-900 flex items-center gap-2">
-                  <PiggyBank className="w-4 h-4 text-[#21442E]" />
-                  <span>Set a specific savings target</span>
-                </div>
-                <div className="text-[11px] text-neutral-500 mt-1">
-                  Specify how much you aim to invest or bank each month.
-                </div>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => onUpdateState({ tm: 'calc' })}
-                className={`p-3.5 rounded-xl border text-left transition-all ${
-                  state.tm === 'calc'
-                    ? 'border-[#21442E] bg-emerald-50/50 shadow-xs'
-                    : 'border-[#E2E6DD] bg-neutral-50 text-neutral-600 hover:bg-neutral-100'
-                }`}
-              >
-                <div className="font-bold text-xs text-neutral-900 flex items-center gap-2">
-                  <BadgePercent className="w-4 h-4 text-[#21442E]" />
-                  <span>Calculate what I can save</span>
-                </div>
-                <div className="text-[11px] text-neutral-500 mt-1">
-                  Model expenses first and discover potential surplus automatically.
-                </div>
-              </button>
+        {/* Existing Commitments (Loans / EMIs / Remittances) */}
+        <div className="pt-4 border-t border-[#E5EAE5] space-y-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+            <div>
+              <label className="text-xs font-bold uppercase tracking-wider text-[#5F6A63]">
+                Existing Non-Negotiable Commitments
+              </label>
+              <p className="text-xs text-[#5F6A63] mt-0.5">
+                Education loans, home EMIs, family remittances that occur regardless of city.
+              </p>
             </div>
+            <span className="text-sm font-bold font-mono text-[#18231E]">
+              {formatINR(state.com)}/mo
+            </span>
           </div>
 
-          {state.tm === 'target' && (
-            <div className="bg-emerald-50/40 p-4 rounded-xl border border-emerald-100 space-y-2">
-              <div className="flex items-center justify-between">
-                <label className="text-xs font-bold text-neutral-700">
-                  Target Monthly Savings
-                </label>
-                <span className="text-sm font-extrabold text-[#21442E]">
-                  {formatINR(state.tgt)}
-                </span>
-              </div>
-              <div className="relative">
-                <span className="absolute left-3.5 top-1/2 -translate-y-1/2 font-bold text-neutral-400">
-                  ₹
-                </span>
-                <input
-                  type="number"
-                  min="0"
-                  step="500"
-                  value={state.tgt}
-                  onChange={(e) =>
-                    onUpdateState({ tgt: Math.max(0, Number(e.target.value)) })
-                  }
-                  className="w-full pl-8 pr-4 py-2 bg-white border border-[#E2E6DD] rounded-xl text-sm font-semibold text-neutral-900 focus:outline-none focus:ring-2 focus:ring-[#21442E]/20"
-                />
-              </div>
-              {isTargetTooHigh && (
-                <p className="text-xs text-red-600">
-                  Target savings must be strictly less than monthly take-home.
-                </p>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* Existing Commitments (Loans, Family Support, EMIs) */}
-        <div className="pt-6 border-t border-[#E2E6DD] space-y-2">
-          <label className="block text-xs font-bold uppercase tracking-wider text-neutral-500">
-            Existing monthly commitments (optional — loans, family support, EMIs)
-          </label>
-          <div className="max-w-md relative">
-            <span className="absolute left-3.5 top-1/2 -translate-y-1/2 font-bold text-neutral-400">
+          <div className="relative">
+            <span className="absolute left-3.5 top-1/2 -translate-y-1/2 font-bold text-[#5F6A63]">
               ₹
             </span>
             <input
               type="number"
               min="0"
-              step="500"
+              step="1000"
               value={state.com}
               onChange={(e) =>
                 onUpdateState({ com: Math.max(0, Number(e.target.value)) })
               }
               placeholder="0"
-              className="w-full pl-8 pr-4 py-2 bg-neutral-50 border border-[#E2E6DD] rounded-xl text-sm font-semibold text-neutral-900 focus:outline-none focus:ring-2 focus:ring-[#21442E]/20"
+              className="w-full pl-8 pr-4 py-2.5 bg-[#F8F9F7] border border-[#E5EAE5] rounded-xl text-sm font-bold font-mono text-[#18231E] focus:outline-none focus:ring-2 focus:ring-[#176B50]/20 focus:border-[#176B50]"
             />
           </div>
-          <p className="text-[11px] text-neutral-400">
-            Leave 0 if you don’t have monthly education loan, vehicle loan or remittance commitments.
-          </p>
         </div>
       </div>
 
-      {/* Available Budget Breakdown Card */}
-      <div className="p-5 rounded-2xl bg-[#21442E] text-white shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div>
-          <div className="text-xs uppercase tracking-wider font-semibold text-emerald-300">
-            Estimated Net Living & Rent Allowance
+      {/* Target Savings Strategy Card */}
+      <div className="bg-white p-6 rounded-2xl border border-[#E5EAE5] shadow-xs space-y-5">
+        <label className="block text-xs font-bold uppercase tracking-wider text-[#5F6A63]">
+          Monthly Savings Objective
+        </label>
+
+        {/* Strategy Switcher */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div
+            onClick={() => onUpdateState({ tm: 'target' })}
+            className={`p-4 rounded-xl border cursor-pointer transition-all ${
+              state.tm === 'target'
+                ? 'border-[#176B50] bg-[#E8F4EF] text-[#176B50] ring-1 ring-[#176B50]'
+                : 'border-[#E5EAE5] bg-[#F8F9F7] text-[#18231E] hover:bg-neutral-100'
+            }`}
+          >
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-xs font-bold uppercase tracking-wider">
+                Fixed Target Target
+              </span>
+              {state.tm === 'target' && (
+                <Check className="w-4 h-4 stroke-[2.5]" />
+              )}
+            </div>
+            <p className="text-xs text-[#5F6A63]">
+              Specify an explicit rupee amount or savings percentage you want to lock away every month.
+            </p>
           </div>
-          <div className="text-3xl font-extrabold font-heading mt-0.5">
-            {formatINR(Math.max(0, remainingBudget))}
-            <span className="text-xs text-emerald-200/80 font-normal"> / month</span>
+
+          <div
+            onClick={() => onUpdateState({ tm: 'calc' })}
+            className={`p-4 rounded-xl border cursor-pointer transition-all ${
+              state.tm === 'calc'
+                ? 'border-[#176B50] bg-[#E8F4EF] text-[#176B50] ring-1 ring-[#176B50]'
+                : 'border-[#E5EAE5] bg-[#F8F9F7] text-[#18231E] hover:bg-neutral-100'
+            }`}
+          >
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-xs font-bold uppercase tracking-wider">
+                Maximize Surplus
+              </span>
+              {state.tm === 'calc' && (
+                <Check className="w-4 h-4 stroke-[2.5]" />
+              )}
+            </div>
+            <p className="text-xs text-[#5F6A63]">
+              Show whatever surplus remains after necessary rent, food, and commute costs in each area.
+            </p>
           </div>
-          <p className="text-xs text-emerald-100/70 mt-1 max-w-lg">
-            This is the maximum available for rent, food, commute and bills while hitting your {state.tm === 'target' ? `${formatINR(state.tgt)} target` : 'savings goal'}.
-          </p>
         </div>
 
-        <div className="text-right text-xs text-emerald-200/90 font-mono space-y-0.5 border-t sm:border-t-0 sm:border-l border-emerald-700/50 pt-2 sm:pt-0 sm:pl-4">
-          <div>Take-home: {formatINR(state.sal)}</div>
-          {state.com > 0 && <div>- Commitments: {formatINR(state.com)}</div>}
-          {state.tm === 'target' && <div>- Target: {formatINR(state.tgt)}</div>}
+        {/* Target Savings Amount (Shown only in target mode) */}
+        {state.tm === 'target' && (
+          <div className="pt-3 border-t border-[#E5EAE5] space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold text-[#18231E]">
+                Monthly Savings Goal:
+              </span>
+              <span className="text-sm font-bold font-mono text-[#176B50]">
+                {formatINR(state.tgt)} / month
+              </span>
+            </div>
+
+            <input
+              type="range"
+              min="5000"
+              max={Math.max(10000, state.sal - state.com)}
+              step="2500"
+              value={state.tgt}
+              onChange={(e) => onUpdateState({ tgt: Number(e.target.value) })}
+              className="w-full h-2 bg-neutral-200 rounded-lg cursor-pointer"
+            />
+
+            <div className="flex items-center gap-2 pt-1">
+              <span className="text-[11px] text-[#5F6A63]">Quick percentages:</span>
+              {[0.2, 0.3, 0.4, 0.5].map((pct) => (
+                <button
+                  key={pct}
+                  type="button"
+                  onClick={() =>
+                    onUpdateState({ tgt: Math.round(state.sal * pct) })
+                  }
+                  className="px-2 py-0.5 rounded text-[11px] font-mono font-medium bg-[#F8F9F7] border border-[#E5EAE5] text-[#5F6A63] hover:text-[#18231E]"
+                >
+                  {pct * 100}% ({formatINR(Math.round(state.sal * pct))})
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Derived Housing & Living Pool */}
+        <div className="p-4 rounded-xl bg-[#F8F9F7] border border-[#E5EAE5] flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div>
+            <div className="text-[11px] font-bold uppercase tracking-wider text-[#5F6A63]">
+              Allocated Housing & Living Pool
+            </div>
+            <div className="text-xs text-[#5F6A63] mt-0.5">
+              Available for rent, utilities, food & transportation.
+            </div>
+          </div>
+          <div className="text-lg font-bold font-mono text-[#18231E]">
+            ~{formatINR(Math.max(0, remainingBudget))}/mo
+          </div>
         </div>
+
+        {isInvalid && (
+          <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-xs text-red-700 flex items-center gap-2">
+            <ShieldAlert className="w-4 h-4 shrink-0 text-red-600" />
+            <span>
+              {isSalaryTooLow
+                ? 'Minimum salary must be at least ₹10,000/mo.'
+                : 'Target savings cannot exceed or equal take-home salary.'}
+            </span>
+          </div>
+        )}
       </div>
 
-      {/* Navigation Buttons */}
+      {/* Navigation Footer */}
       <div className="flex items-center justify-between pt-4">
         <button
           type="button"
           onClick={onBack}
-          className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl border border-[#E2E6DD] bg-white text-xs font-semibold text-neutral-700 hover:bg-neutral-50 transition-colors"
+          className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-semibold text-[#5F6A63] hover:text-[#18231E] hover:bg-neutral-100 transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
-          <span>Back</span>
+          <span>Back to Location</span>
         </button>
 
         <button
           type="button"
           disabled={isInvalid}
           onClick={onNext}
-          className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-[#21442E] text-white font-semibold text-sm shadow-sm hover:bg-[#183423] disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+          className={`inline-flex items-center gap-2 px-6 py-3 rounded-xl text-xs font-semibold text-white shadow-sm transition-all duration-150 active:scale-[0.98] ${
+            isInvalid
+              ? 'bg-neutral-300 cursor-not-allowed'
+              : 'bg-[#176B50] hover:bg-[#125740]'
+          }`}
         >
-          <span>Find where I can live</span>
+          <span>Discover Neighbourhoods</span>
           <ArrowRight className="w-4 h-4" />
         </button>
       </div>
