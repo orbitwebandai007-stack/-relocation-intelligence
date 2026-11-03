@@ -1,0 +1,6 @@
+{
+  "name": "Relocation Intelligence",
+  "description": "Smart city relocation planner for Bengaluru & Delhi NCR with rent benchmarks, commute estimation, lifestyle budgets, and savings projections.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
