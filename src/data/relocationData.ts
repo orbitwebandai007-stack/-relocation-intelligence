@@ -358,20 +358,19 @@ export const EXPENSE_CATEGORIES: Record<ExpenseCategory, string> = {
 };
 
 export const INITIAL_STATE: RelocationState = {
-  v: 'land',
+  v: 'step',
   st: 0,
   max: 0,
   tab: 'rep',
   city: 'blr',
-  wp: {
-    name: 'Outer Ring Road · Bellandur',
-    lat: 12.9387,
-    lng: 77.722,
-  },
-  sal: 95000, // Destination take-home
-  currentSal: 72000, // Current take-home
-  currentExpenses: 44000, // Current monthly living expenses
-  tgt: 25000,
+  wp: null,
+  wpConfirmed: false,
+  flowPhase: 'onboarding',
+  annualLpa: 18,
+  sal: 115000, // Destination take-home (~18 LPA)
+  currentSal: 80000, // Current take-home in origin city
+  currentExpenses: 42000, // Current monthly living expenses
+  tgt: 30000,
   tm: 'target',
   com: 0,
   acc: 'alone',
@@ -383,7 +382,7 @@ export const INITIAL_STATE: RelocationState = {
   sel: [],
   ov: {},
   f: { r: '', c: '', a: '', q: '' },
-  from: 'Pune',
+  from: 'Lucknow',
 };
 
 // Utilities

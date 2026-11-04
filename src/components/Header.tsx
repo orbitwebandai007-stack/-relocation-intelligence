@@ -87,7 +87,13 @@ export const Header: React.FC<HeaderProps> = ({
   };
 
   return (
-    <header className="sticky top-0 z-50 w-full bg-[#F8F9F7]/90 backdrop-blur-md border-b border-[#E5EAE5] transition-all">
+    <header
+      className={`sticky top-0 z-50 w-full transition-all ${
+        isLanding
+          ? 'bg-[#F8F9F7]/95 backdrop-blur-md border-b border-[#E5EAE5]'
+          : 'bg-white/80 backdrop-blur-md border-b border-[#E5EAE5]/60 shadow-[0_1px_12px_rgba(0,0,0,0.03)]'
+      }`}
+    >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 sm:h-20 flex items-center justify-between gap-3 sm:gap-4">
         {/* Left: Brand Identity with Modern 3-Node Logo Mark */}
         <div

@@ -150,16 +150,18 @@
   position: relative;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
   background: #176B50;
   color: #FFFFFF;
-  padding: 5px 12px;
+  padding: 6px 14px;
   border-radius: 9999px;
   border: 2px solid #FFFFFF;
   box-shadow: 0 4px 16px rgba(23, 107, 80, 0.35);
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 11px;
   font-weight: 700;
+  line-height: 1;
   white-space: nowrap;
   transform: translate(-50%, -50%);
   pointer-events: auto;
@@ -168,15 +170,17 @@
 .custom-locality-marker {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
   background: #FFFFFF;
-  padding: 4px 10px 4px 7px;
+  padding: 5px 12px;
   border-radius: 9999px;
   border: 1px solid #E5EAE5;
   box-shadow: 0 1px 4px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.04);
   font-family: 'Inter', sans-serif;
   font-size: 11px;
   font-weight: 600;
+  line-height: 1;
   color: #18231E;
   white-space: nowrap;
   transform: translate(-50%, -50%);

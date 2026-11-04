@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { CityKey, MapLayersState, RelocationState, ScoredNeighbourhood } from './types';
+import { CityKey, MapLayersState, RelocationState, ScoredNeighbourhood, WorkplaceHub } from './types';
 import {
   CITIES,
   INITIAL_STATE,
@@ -12,7 +12,8 @@ import { Footer } from './components/Footer';
 import { LandingPage } from './components/LandingPage';
 import { MapComponent } from './components/MapComponent';
 import { PlannerPanel } from './components/PlannerPanel';
-import { Compass } from 'lucide-react';
+import { OnboardingExperience } from './components/OnboardingExperience';
+import { Compass, Edit3 } from 'lucide-react';
 
 export default function App() {
   const [state, setState] = useState<RelocationState>(() => {
@@ -26,6 +27,9 @@ export default function App() {
     }
     return INITIAL_STATE;
   });
+
+  // Candidate workplace for Phase 2 selection before user confirmation
+  const [candidateWp, setCandidateWp] = useState<WorkplaceHub | null>(null);
 
   // Save state to localStorage on state changes
   useEffect(() => {
@@ -55,6 +59,8 @@ export default function App() {
   const handleReset = () => {
     if (confirm('Reset your relocation plan to initial defaults?')) {
       setState(INITIAL_STATE);
+      setCandidateWp(null);
+      setRouteMap(new Map());
       try {
         localStorage.removeItem('ri_v2');
       } catch (e) {}
@@ -72,10 +78,10 @@ export default function App() {
     });
   };
 
-  // Prefetch OSRM driving routes for all neighbourhoods in the city with throttling
+  // Prefetch OSRM driving routes only when workplace is confirmed and in recommendations phase
   useEffect(() => {
     const currentWp = state.wp;
-    if (!currentWp) return;
+    if (!currentWp || !state.wpConfirmed || state.flowPhase !== 'recommendations') return;
     const cityData = CITIES[state.city] || CITIES.blr;
     const areas = cityData.areas;
     let isCancelled = false;
@@ -106,7 +112,7 @@ export default function App() {
     return () => {
       isCancelled = true;
     };
-  }, [state.wp?.lat, state.wp?.lng, state.city]);
+  }, [state.wp?.lat, state.wp?.lng, state.city, state.wpConfirmed, state.flowPhase]);
 
   // Live scored neighbourhoods calculation based on current state and OSRM road routes
   const scoredNeighbourhoods = useMemo(() => {
@@ -133,8 +139,9 @@ export default function App() {
   }, [state.sel, scoredNeighbourhoods]);
 
   const isLanding = state.v === 'land';
+  const flowPhase = state.flowPhase || (state.wpConfirmed ? 'recommendations' : 'onboarding');
 
-  // Map layer controls & panel visibility for the Lamar map-first planner layout
+  // Map layer controls & panel visibility
   const [layers, setLayers] = useState<MapLayersState>({
     n: true, // Neighbourhood markers
     w: true, // Workplace marker
@@ -144,6 +151,77 @@ export default function App() {
   });
   const [isPanelVisible, setIsPanelVisible] = useState(true);
 
+  // Phase 1 -> Phase 2: User submits initial onboarding card
+  const handleExploreMove = (
+    fromCity: string,
+    destCity: CityKey,
+    annualLpa: number,
+    monthlySal: number
+  ) => {
+    setRouteMap(new Map());
+    setCandidateWp(null);
+    updateState({
+      from: fromCity,
+      city: destCity,
+      annualLpa,
+      sal: monthlySal,
+      wp: null,
+      wpConfirmed: false,
+      flowPhase: 'workplace_select',
+      sel: [],
+      f: { ...state.f, q: '' },
+    });
+  };
+
+  // Phase 2 -> Phase 3: User confirms candidate workplace location
+  const handleConfirmWorkplace = () => {
+    if (!candidateWp) return;
+    updateState({
+      wp: candidateWp,
+      wpConfirmed: true,
+      flowPhase: 'recommendations',
+      st: 2, // Direct to corridor discovery
+      max: Math.max(state.max, 2),
+      sel: [],
+    });
+    setIsPanelVisible(true);
+  };
+
+  // Returning to Phase 1 from Phase 2
+  const handleBackToOnboarding = () => {
+    updateState({
+      flowPhase: 'onboarding',
+      wpConfirmed: false,
+    });
+  };
+
+  // User clicking on the map during workplace_select to place a candidate office pin
+  const handleMapClickForWorkplace = (lat: number, lng: number) => {
+    const currentCityData = CITIES[state.city] || CITIES.blr;
+    const allKnown = [...currentCityData.hubs, ...currentCityData.areas];
+    let nearestName = '';
+    let minD = Infinity;
+
+    for (const item of allKnown) {
+      const d = Math.hypot(item[1] - lat, item[2] - lng);
+      if (d < minD) {
+        minD = d;
+        nearestName = item[0];
+      }
+    }
+
+    const pinnedName =
+      minD < 0.02
+        ? `Near ${nearestName}`
+        : `Custom Location (${lat.toFixed(3)}, ${lng.toFixed(3)})`;
+
+    setCandidateWp({
+      name: pinnedName,
+      lat,
+      lng,
+    });
+  };
+
   // Quick city change handler with full state and route integrity
   const handleSelectCity = (cityKey: CityKey) => {
     const selectedCity = CITIES[cityKey] || CITIES.blr;
@@ -151,6 +229,7 @@ export default function App() {
     
     // Invalidate outdated routes from previous city immediately
     setRouteMap(new Map());
+    setCandidateWp(null);
 
     updateState({
       city: cityKey,
@@ -159,9 +238,8 @@ export default function App() {
         lat: defaultHub[1],
         lng: defaultHub[2],
       },
-      sel: [], // Invalidate previous city neighbourhood selection
+      sel: [],
       f: { ...state.f, q: '' },
-      // Reset city-specific overrides so new city's micro-market defaults take effect
       depositMonthsOverride: undefined,
       brokerageOverride: undefined,
       moversOverride: undefined,
@@ -193,24 +271,36 @@ export default function App() {
         <main className="flex-1 w-full mx-auto">
           <LandingPage
             state={state}
-            onStartPlanning={() => goToStep(0)}
+            onStartPlanning={() => {
+              updateState({
+                v: 'step',
+                flowPhase: state.wpConfirmed ? 'recommendations' : 'onboarding',
+              });
+            }}
             onResumePlanning={() => goToStep(state.st)}
           />
 
           {/* Minimal SaaS Style Footer */}
           <Footer
-            onStartPlanning={() => goToStep(0)}
+            onStartPlanning={() => {
+              updateState({
+                v: 'step',
+                flowPhase: state.wpConfirmed ? 'recommendations' : 'onboarding',
+              });
+            }}
             onReset={handleReset}
           />
         </main>
       ) : (
-        /* 2. LAMAR-INSPIRED MAP-FIRST DASHBOARD */
+        /* 2. FULL-SCREEN MAP EXPERIENCE */
         <div className="relative flex-1 w-full h-[calc(100vh-64px)] sm:h-[calc(100vh-80px)] overflow-hidden">
-          {/* Main Map Canvas (approx 70-75% width or full viewport background) */}
+          {/* Main Full-Screen Map Canvas */}
           <div className="absolute inset-0 z-0">
             <MapComponent
               city={state.city}
               workplace={state.wp}
+              candidateWp={candidateWp}
+              flowPhase={flowPhase}
               neighbourhoods={scoredNeighbourhoods}
               selectedId={chosenNeighbourhood.i}
               shortlist={state.sel}
@@ -224,39 +314,76 @@ export default function App() {
                 setIsPanelVisible(true);
               }}
               onRouteLoaded={handleRouteLoaded}
-              isPanelVisible={isPanelVisible}
+              onMapClickForWorkplace={handleMapClickForWorkplace}
+              isPanelVisible={isPanelVisible && flowPhase === 'recommendations'}
               onTogglePanel={() => setIsPanelVisible(!isPanelVisible)}
               className="h-full w-full"
             />
           </div>
 
-          {/* Floating Right Interaction Panel (Expands to executive width for Relocation Blueprint) */}
-          {isPanelVisible ? (
-            <div
-              className={`absolute top-2 right-2 bottom-2 left-2 sm:left-auto sm:top-3 sm:right-3 sm:bottom-3 ${
-                state.st === 5
-                  ? 'w-auto sm:w-[680px] lg:w-[840px] max-w-[95vw]'
-                  : 'w-auto sm:w-[420px] lg:w-[450px]'
-              } z-20 rounded-2xl border border-[#E5EAE5] shadow-[0_8px_30px_rgb(0,0,0,0.08)] bg-white overflow-hidden flex flex-col transition-all duration-300 animate-in fade-in slide-in-from-right-4`}
-            >
-              <PlannerPanel
-                state={state}
-                scoredNeighbourhoods={scoredNeighbourhoods}
-                chosenNeighbourhood={chosenNeighbourhood}
-                onUpdateState={updateState}
-                onGoStep={goToStep}
-              />
-            </div>
-          ) : (
-            /* Floating Button to re-open decision panel when hidden */
-            <button
-              type="button"
-              onClick={() => setIsPanelVisible(true)}
-              className="absolute bottom-5 right-5 z-20 inline-flex items-center gap-2 px-5 py-3 rounded-full bg-[#176B50] hover:bg-[#125740] text-white text-xs font-semibold shadow-xl transition-all active:scale-95 duration-150"
-            >
-              <Compass className="w-4 h-4 text-[#C8E6A0]" />
-              <span>Open Decision Panel</span>
-            </button>
+          {/* 3A. FLOATING ONBOARDING / WORKPLACE SELECTION CARDS */}
+          {flowPhase !== 'recommendations' && (
+            <OnboardingExperience
+              state={state}
+              candidateWp={candidateWp}
+              onSelectCandidateWp={(wp) => setCandidateWp(wp)}
+              onUpdateState={updateState}
+              onExploreMove={handleExploreMove}
+              onConfirmWorkplace={handleConfirmWorkplace}
+              onBackToOnboarding={handleBackToOnboarding}
+            />
+          )}
+
+          {/* 3B. FLOATING RECOMMENDATION & DECISION PANEL (Only active in recommendations phase) */}
+          {flowPhase === 'recommendations' && (
+            <>
+              {/* Quick Bar to change office pin without resetting whole app */}
+              <div className="absolute top-3 left-3 z-20 hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/95 backdrop-blur-md border border-[#E5EAE5] shadow-xs text-xs">
+                <span className="text-[#5F6A63]">Office:</span>
+                <strong className="text-[#18231E] font-medium truncate max-w-[180px]">
+                  {state.wp?.name || 'Selected Hub'}
+                </strong>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCandidateWp(state.wp);
+                    updateState({ flowPhase: 'workplace_select', wpConfirmed: false });
+                  }}
+                  className="ml-1 inline-flex items-center gap-1 text-[11px] font-bold text-[#176B50] hover:underline"
+                >
+                  <Edit3 className="w-3 h-3" />
+                  <span>Change</span>
+                </button>
+              </div>
+
+              {isPanelVisible ? (
+                <div
+                  className={`absolute top-2 right-2 bottom-2 left-2 sm:left-auto sm:top-3 sm:right-3 sm:bottom-3 ${
+                    state.st === 5
+                      ? 'w-auto sm:w-[680px] lg:w-[840px] max-w-[95vw]'
+                      : 'w-auto sm:w-[420px] lg:w-[450px]'
+                  } z-20 rounded-2xl border border-[#E5EAE5] shadow-[0_8px_30px_rgb(0,0,0,0.08)] bg-white overflow-hidden flex flex-col transition-all duration-300 animate-in fade-in slide-in-from-right-4`}
+                >
+                  <PlannerPanel
+                    state={state}
+                    scoredNeighbourhoods={scoredNeighbourhoods}
+                    chosenNeighbourhood={chosenNeighbourhood}
+                    onUpdateState={updateState}
+                    onGoStep={goToStep}
+                  />
+                </div>
+              ) : (
+                /* Floating Button to re-open decision panel when hidden */
+                <button
+                  type="button"
+                  onClick={() => setIsPanelVisible(true)}
+                  className="absolute bottom-5 right-5 z-20 inline-flex items-center gap-2 px-5 py-3 rounded-full bg-[#176B50] hover:bg-[#125740] text-white text-xs font-semibold shadow-xl transition-all active:scale-95 duration-150"
+                >
+                  <Compass className="w-4 h-4 text-[#C8E6A0]" />
+                  <span>Open Decision Panel</span>
+                </button>
+              )}
+            </>
           )}
         </div>
       )}

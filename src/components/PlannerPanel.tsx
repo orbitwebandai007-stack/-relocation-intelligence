@@ -625,7 +625,7 @@ export const PlannerPanel: React.FC<PlannerPanelProps> = ({
                         Primary Selection
                       </span>
                       <span
-                        className={`px-2 py-0.5 rounded-full text-[9px] font-mono font-bold uppercase ${
+                        className={`inline-flex items-center justify-center px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider leading-none whitespace-nowrap shrink-0 ${
                           chosenNeighbourhood.badgeTone === 'emerald'
                             ? 'bg-[#E8F4EF] text-[#176B50]'
                             : chosenNeighbourhood.badgeTone === 'blue'

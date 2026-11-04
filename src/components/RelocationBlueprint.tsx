@@ -355,7 +355,7 @@ export const RelocationBlueprint: React.FC<RelocationBlueprintProps> = ({
               <div className="flex items-center gap-2">
                 <StatusIcon className={`w-5 h-5 ${statusTheme.text}`} />
                 <span
-                  className={`px-2.5 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider ${statusTheme.badgeBg}`}
+                  className={`inline-flex items-center justify-center px-2.5 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider leading-none whitespace-nowrap shrink-0 ${statusTheme.badgeBg}`}
                 >
                   {verdict.badgeLabel}
                 </span>
@@ -539,7 +539,7 @@ export const RelocationBlueprint: React.FC<RelocationBlueprintProps> = ({
                   <span className="text-xs font-mono font-bold uppercase tracking-wider text-[#176B50]">
                     TOP RECOMMENDED CORRIDOR
                   </span>
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-[#E8F4EF] text-[#176B50]">
+                  <span className="inline-flex items-center justify-center px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider leading-none whitespace-nowrap bg-[#E8F4EF] text-[#176B50]">
                     {chosenNeighbourhood.badge}
                   </span>
                 </div>
@@ -640,12 +640,12 @@ export const RelocationBlueprint: React.FC<RelocationBlueprintProps> = ({
                         : 'border-[#E5EAE5] bg-[#F8F9F7] hover:border-neutral-300 hover:bg-white'
                     }`}
                   >
-                    <div className="flex items-center justify-between gap-2 mb-1">
-                      <span className="text-[9px] font-mono font-bold uppercase px-1.5 py-0.5 rounded bg-neutral-200 text-[#18231E]">
+                    <div className="flex items-center justify-between gap-2 mb-1.5">
+                      <span className="inline-flex items-center justify-center px-2.5 py-1 rounded-full text-[9px] font-mono font-bold uppercase leading-none whitespace-nowrap bg-neutral-200 text-[#18231E]">
                         {item.badge}
                       </span>
                       {isSelected && (
-                        <span className="px-1.5 py-0.5 rounded text-[9px] font-mono font-bold bg-[#176B50] text-white">
+                        <span className="inline-flex items-center justify-center px-2 py-0.5 rounded-full text-[9px] font-mono font-bold leading-none bg-[#176B50] text-white">
                           ACTIVE
                         </span>
                       )}

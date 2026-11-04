@@ -35,6 +35,8 @@ import {
 interface MapComponentProps {
   city: CityKey;
   workplace: WorkplaceHub | null;
+  candidateWp?: WorkplaceHub | null;
+  flowPhase?: 'onboarding' | 'workplace_select' | 'recommendations';
   neighbourhoods: ScoredNeighbourhood[];
   selectedId: number | null;
   shortlist: number[];
@@ -43,6 +45,7 @@ interface MapComponentProps {
   currentStep?: number;
   onSelectNeighbourhood: (id: number) => void;
   onRouteLoaded?: (areaName: string, route: RouteInfo) => void;
+  onMapClickForWorkplace?: (lat: number, lng: number) => void;
   className?: string;
   isPanelVisible?: boolean;
   onTogglePanel?: () => void;
@@ -51,6 +54,8 @@ interface MapComponentProps {
 export const MapComponent: React.FC<MapComponentProps> = ({
   city,
   workplace,
+  candidateWp = null,
+  flowPhase = 'recommendations',
   neighbourhoods,
   selectedId,
   shortlist,
@@ -59,6 +64,7 @@ export const MapComponent: React.FC<MapComponentProps> = ({
   currentStep = 2,
   onSelectNeighbourhood,
   onRouteLoaded,
+  onMapClickForWorkplace,
   className = 'h-full w-full',
   isPanelVisible = true,
   onTogglePanel,
@@ -81,8 +87,20 @@ export const MapComponent: React.FC<MapComponentProps> = ({
     }
 
     const currentCityData = CITIES[city] || CITIES.blr;
-    const centerLng = workplace ? workplace.lng : currentCityData.center[1];
-    const centerLat = workplace ? workplace.lat : currentCityData.center[0];
+    
+    // Pan-India view if in onboarding phase, otherwise city or office center
+    const isInitialOnboarding = flowPhase === 'onboarding';
+    const centerLng = isInitialOnboarding
+      ? 78.9629
+      : workplace
+      ? workplace.lng
+      : currentCityData.center[1];
+    const centerLat = isInitialOnboarding
+      ? 20.5937
+      : workplace
+      ? workplace.lat
+      : currentCityData.center[0];
+    const initialZoom = isInitialOnboarding ? 4.7 : 11.8;
 
     // High quality light, low-contrast raster basemap
     const map = new maplibregl.Map({
@@ -116,7 +134,7 @@ export const MapComponent: React.FC<MapComponentProps> = ({
         ],
       },
       center: [centerLng, centerLat],
-      zoom: 12.2,
+      zoom: initialZoom,
       attributionControl: false,
     });
 
@@ -188,19 +206,80 @@ export const MapComponent: React.FC<MapComponentProps> = ({
     };
   }, [city]);
 
-  // Center update when workplace changes
+  // Click handler for workplace placement when in workplace_select phase
   useEffect(() => {
     const map = mapInstanceRef.current;
     if (!map || !mapLoaded) return;
 
-    if (workplace) {
-      map.flyTo({
-        center: [workplace.lng, workplace.lat],
-        zoom: currentStep === 0 ? 13 : 12.2,
-        duration: 900,
-      });
+    const handleMapClick = (e: maplibregl.MapMouseEvent) => {
+      if (flowPhase === 'workplace_select' && onMapClickForWorkplace) {
+        onMapClickForWorkplace(e.lngLat.lat, e.lngLat.lng);
+      }
+    };
+
+    if (flowPhase === 'workplace_select') {
+      map.getCanvas().style.cursor = 'crosshair';
+    } else {
+      map.getCanvas().style.cursor = '';
     }
-  }, [workplace?.lat, workplace?.lng, mapLoaded, currentStep]);
+
+    map.on('click', handleMapClick);
+
+    return () => {
+      map.off('click', handleMapClick);
+    };
+  }, [mapLoaded, flowPhase, onMapClickForWorkplace]);
+
+  // Smooth camera transitions across flow phases
+  useEffect(() => {
+    const map = mapInstanceRef.current;
+    if (!map || !mapLoaded) return;
+
+    const currentCityData = CITIES[city] || CITIES.blr;
+
+    if (flowPhase === 'onboarding') {
+      map.flyTo({
+        center: [78.9629, 20.5937],
+        zoom: 4.7,
+        duration: 1200,
+        essential: true,
+      });
+    } else if (flowPhase === 'workplace_select') {
+      if (candidateWp) {
+        map.flyTo({
+          center: [candidateWp.lng, candidateWp.lat],
+          zoom: 12.8,
+          duration: 800,
+          essential: true,
+        });
+      } else {
+        map.flyTo({
+          center: [currentCityData.center[1], currentCityData.center[0]],
+          zoom: 11.8,
+          duration: 1200,
+          essential: true,
+        });
+      }
+    } else if (flowPhase === 'recommendations') {
+      if (workplace) {
+        map.flyTo({
+          center: [workplace.lng, workplace.lat],
+          zoom: currentStep === 0 ? 13 : 12.2,
+          duration: 900,
+          essential: true,
+        });
+      }
+    }
+  }, [
+    flowPhase,
+    city,
+    workplace?.lat,
+    workplace?.lng,
+    candidateWp?.lat,
+    candidateWp?.lng,
+    mapLoaded,
+    currentStep,
+  ]);
 
   // Dynamic route calculation for selected neighbourhood
   useEffect(() => {
@@ -316,7 +395,46 @@ export const MapComponent: React.FC<MapComponentProps> = ({
       popupRef.current = null;
     }
 
-    // 1. Workplace Marker (Distinct circular pin with pulsing radar ring)
+    // PHASE 1: In initial onboarding, remove all markers completely
+    if (flowPhase === 'onboarding') {
+      return;
+    }
+
+    // PHASE 2: In workplace selection, render only candidate workplace marker if present
+    if (flowPhase === 'workplace_select') {
+      const activeCandidate = candidateWp || workplace;
+      if (activeCandidate) {
+        const officeContainer = document.createElement('div');
+        officeContainer.className = 'relative flex items-center justify-center cursor-pointer';
+
+        // Pulsing radar ring
+        const radar = document.createElement('div');
+        radar.className = 'radar-ring';
+        officeContainer.appendChild(radar);
+
+        // Office badge label
+        const officeEl = document.createElement('div');
+        officeEl.className = 'custom-office-marker';
+        officeEl.innerHTML = `
+          <span class="w-2.5 h-2.5 rounded-full bg-[#C8E6A0]"></span>
+          <span>Target Office · ${activeCandidate.name}</span>
+        `;
+        officeContainer.appendChild(officeEl);
+
+        const officeMarker = new maplibregl.Marker({
+          element: officeContainer,
+          anchor: 'center',
+        })
+          .setLngLat([activeCandidate.lng, activeCandidate.lat])
+          .addTo(map);
+
+        markersRef.current.push(officeMarker);
+      }
+      return;
+    }
+
+    // PHASE 3: Recommendations Phase - Render Full Markers
+    // 1. Confirmed Workplace Marker
     if (layers.w && workplace) {
       const officeContainer = document.createElement('div');
       officeContainer.className = 'relative flex items-center justify-center cursor-pointer';
@@ -364,7 +482,7 @@ export const MapComponent: React.FC<MapComponentProps> = ({
       });
     }
 
-    // 3. Neighbourhood Markers (Lamar-style circular badge markers)
+    // 3. Scored Neighbourhood Markers (Lamar-style circular badge markers)
     if (layers.n || layers.r) {
       neighbourhoods.forEach((q, index) => {
         if (!q.vis) return;
@@ -431,7 +549,7 @@ export const MapComponent: React.FC<MapComponentProps> = ({
             'OVER BUDGET': 'bg-rose-100 text-rose-700',
             'LONG COMMUTE': 'bg-amber-100 text-amber-800',
           };
-          const badgeClass = badgeColorMap[q.badge] || 'bg-neutral-100 text-neutral-700';
+          const badgeColor = badgeColorMap[q.badge] || 'bg-neutral-100 text-neutral-700';
 
           const roadKmDisplay = q.roadKm !== null && q.roadKm !== undefined ? `${q.roadKm} km road` : 'Modeled road';
           const straightKmDisplay = `${q.straightLineKm} km straight-line`;
@@ -439,10 +557,10 @@ export const MapComponent: React.FC<MapComponentProps> = ({
           const baselineMinDisplay = q.baselineMin !== null && q.baselineMin !== undefined ? `~${q.baselineMin} min off-peak` : '';
 
           const popupHtml = `
-            <div class="p-3 text-[#18231E] font-sans max-w-[270px]">
-              <div class="flex items-center justify-between gap-2 mb-1.5">
+            <div class="p-3.5 text-[#18231E] font-sans max-w-[280px]">
+              <div class="flex items-center justify-between gap-2 mb-2">
                 <h4 class="font-bold text-sm text-[#18231E] leading-tight">${q.a[0]}</h4>
-                <span class="text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${badgeClass}">
+                <span class="inline-flex items-center justify-center px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider leading-none whitespace-nowrap shrink-0 ${badgeColor}">
                   ${q.badge}
                 </span>
               </div>

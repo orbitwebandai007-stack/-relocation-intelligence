@@ -292,4 +292,9 @@ export interface RelocationState {
   f: FilterState;
   from: string; // Origin city
   weights?: ScoringWeights;
+
+  // Initial Onboarding & Spatial Flow
+  flowPhase?: 'onboarding' | 'workplace_select' | 'recommendations';
+  wpConfirmed?: boolean;
+  annualLpa?: number;
 }
