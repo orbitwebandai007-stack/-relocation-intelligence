@@ -493,24 +493,24 @@ export const Step3Neighbourhoods: React.FC<Step3NeighbourhoodsProps> = ({
 
             {/* Active Neighbourhood Floating Inspection Card */}
             {activeNeighbourhood && (
-              <div className="absolute bottom-3 left-3 right-3 z-10 bg-white/95 backdrop-blur-md p-4 rounded-xl border border-[#E5EAE5] shadow-md flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="w-2.5 h-2.5 rounded-full bg-[#176B50]" />
-                    <h3 className="font-bold text-sm text-[#18231E] truncate">
+              <div className="absolute bottom-3 left-3 right-3 z-10 bg-white/95 backdrop-blur-md p-3.5 sm:p-4 rounded-xl border border-[#E5EAE5] shadow-md flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="w-2.5 h-2.5 rounded-full bg-[#176B50] shrink-0" />
+                    <h3 className="font-bold text-sm text-[#18231E] truncate max-w-[180px]">
                       {activeNeighbourhood.a[0]}
                     </h3>
-                    <span className="text-xs text-[#5F6A63]">
+                    <span className="text-xs text-[#5F6A63] truncate max-w-[160px]">
                       ↔ {state.wp?.name || 'Office'}
                     </span>
                   </div>
 
-                  <div className="flex items-center gap-4 text-xs text-[#5F6A63] mt-1 font-mono">
-                    <span>
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-[#5F6A63] mt-1 font-mono">
+                    <span className="truncate">
                       Travel: <strong className="text-[#18231E]">{routeDurationDisplay}</strong> ({routeDistanceDisplay})
                     </span>
-                    <span>·</span>
-                    <span>
+                    <span className="text-neutral-300">·</span>
+                    <span className="truncate">
                       Rent: <strong className="text-[#18231E]">{formatINR(activeNeighbourhood.x.e.rent)}</strong>/mo
                     </span>
                   </div>

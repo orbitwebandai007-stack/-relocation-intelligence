@@ -53,6 +53,8 @@ import {
   Layers,
   Sparkles,
   Info,
+  Compass,
+  Eye,
 } from 'lucide-react';
 
 interface PlannerPanelProps {
@@ -61,6 +63,7 @@ interface PlannerPanelProps {
   chosenNeighbourhood: ScoredNeighbourhood;
   onUpdateState: (updates: Partial<RelocationState>) => void;
   onGoStep: (step: number) => void;
+  onTogglePanel?: () => void;
 }
 
 export const PlannerPanel: React.FC<PlannerPanelProps> = ({
@@ -69,6 +72,7 @@ export const PlannerPanel: React.FC<PlannerPanelProps> = ({
   chosenNeighbourhood,
   onUpdateState,
   onGoStep,
+  onTogglePanel,
 }) => {
   const currentCity = CITIES[state.city] || CITIES.blr;
   const wp = state.wp || {
@@ -206,6 +210,24 @@ export const PlannerPanel: React.FC<PlannerPanelProps> = ({
 
   return (
     <div className="h-full flex flex-col justify-between overflow-hidden bg-white">
+      {/* Mobile Top Bar: Quick navigation to view map on small viewports */}
+      <div className="sm:hidden flex items-center justify-between px-4 py-2.5 border-b border-[#E5EAE5] bg-[#F8F9F7] shrink-0">
+        <div className="flex items-center gap-1.5 text-xs font-semibold text-[#18231E]">
+          <Compass className="w-3.5 h-3.5 text-[#176B50]" />
+          <span>Decision Panel</span>
+        </div>
+        {onTogglePanel && (
+          <button
+            type="button"
+            onClick={onTogglePanel}
+            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold text-[#176B50] bg-white border border-[#E5EAE5] shadow-2xs hover:bg-[#E8F4EF] transition-colors cursor-pointer"
+          >
+            <Eye className="w-3.5 h-3.5" />
+            <span>View Map</span>
+          </button>
+        )}
+      </div>
+
       {/* Scrollable Content Body */}
       <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-6 scrollbar-thin">
         {/* ================= STEP 0: LOCATION ================= */}
@@ -618,14 +640,14 @@ export const PlannerPanel: React.FC<PlannerPanelProps> = ({
             {/* Currently Active Locality Card */}
             {chosenNeighbourhood && (
               <div className="p-4 rounded-2xl border border-[#176B50] bg-white ring-2 ring-[#176B50]/15 shadow-sm space-y-3">
-                <div className="flex items-start justify-between gap-2">
-                  <div>
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-[#176B50]">
+                <div className="flex items-start justify-between gap-2.5">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-[#176B50] shrink-0">
                         Primary Selection
                       </span>
                       <span
-                        className={`inline-flex items-center justify-center px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider leading-none whitespace-nowrap shrink-0 ${
+                        className={`inline-flex items-center justify-center px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider leading-none whitespace-nowrap shrink-0 ${
                           chosenNeighbourhood.badgeTone === 'emerald'
                             ? 'bg-[#E8F4EF] text-[#176B50]'
                             : chosenNeighbourhood.badgeTone === 'blue'
@@ -640,7 +662,7 @@ export const PlannerPanel: React.FC<PlannerPanelProps> = ({
                         {chosenNeighbourhood.badge}
                       </span>
                     </div>
-                    <h3 className="text-base font-bold text-[#18231E] mt-0.5">
+                    <h3 className="text-base font-bold text-[#18231E] mt-1 truncate" title={chosenNeighbourhood.a[0]}>
                       {chosenNeighbourhood.a[0]}
                     </h3>
                   </div>
@@ -648,10 +670,10 @@ export const PlannerPanel: React.FC<PlannerPanelProps> = ({
                   <button
                     type="button"
                     onClick={(e) => handleToggleShortlist(chosenNeighbourhood.i, e)}
-                    className={`px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1 transition-colors ${
+                    className={`shrink-0 px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap active:scale-95 ${
                       state.sel.includes(chosenNeighbourhood.i)
-                        ? 'bg-[#176B50] text-white'
-                        : 'bg-[#F8F9F7] border border-[#E5EAE5] text-[#18231E]'
+                        ? 'bg-[#176B50] text-white shadow-2xs'
+                        : 'bg-[#F8F9F7] border border-[#E5EAE5] text-[#18231E] hover:bg-neutral-100'
                     }`}
                   >
                     <Bookmark className="w-3.5 h-3.5" />
@@ -664,34 +686,34 @@ export const PlannerPanel: React.FC<PlannerPanelProps> = ({
                 </div>
 
                 <div className="grid grid-cols-2 gap-2 text-xs pt-1">
-                  <div className="p-2.5 rounded-xl bg-[#F8F9F7] border border-[#E5EAE5]">
-                    <span className="text-[10px] text-[#5F6A63] uppercase">
+                  <div className="p-2.5 rounded-xl bg-[#F8F9F7] border border-[#E5EAE5] min-w-0">
+                    <span className="text-[10px] text-[#5F6A63] uppercase font-semibold block truncate">
                       Rent ({PROPERTIES[state.prop]?.[0]}):
                     </span>
-                    <div className="font-mono font-bold text-[#18231E]">
+                    <div className="font-mono font-bold text-[#18231E] mt-0.5 truncate">
                       {formatINR(chosenNeighbourhood.x.e.rent)}/mo
                     </div>
-                    <span className="text-[10px] text-[#5F6A63]">
+                    <span className="text-[10px] text-[#5F6A63] block truncate mt-0.5">
                       Deposit: {formatINR(chosenNeighbourhood.depositRequired)} (Refundable)
                     </span>
                   </div>
 
-                  <div className="p-2.5 rounded-xl bg-[#F8F9F7] border border-[#E5EAE5]">
-                    <span className="text-[10px] text-[#5F6A63] uppercase">
+                  <div className="p-2.5 rounded-xl bg-[#F8F9F7] border border-[#E5EAE5] min-w-0">
+                    <span className="text-[10px] text-[#5F6A63] uppercase font-semibold block truncate">
                       Peak Commute:
                     </span>
-                    <div className="font-mono font-bold text-[#176B50]">
+                    <div className="font-mono font-bold text-[#176B50] mt-0.5 truncate">
                       ~{chosenNeighbourhood.peakMin ?? chosenNeighbourhood.drivingMin} min
                     </div>
-                    <span className="text-[10px] text-[#5F6A63]">
-                      {chosenNeighbourhood.roadKm} km road ({chosenNeighbourhood.straightLineKm} km air)
+                    <span className="text-[10px] text-[#5F6A63] block truncate mt-0.5">
+                      {chosenNeighbourhood.roadKm !== null && chosenNeighbourhood.roadKm !== undefined ? `${chosenNeighbourhood.roadKm} km road` : 'Modeled road'} ({chosenNeighbourhood.straightLineKm} km air)
                     </span>
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between text-xs pt-1">
-                  <span className="text-[#5F6A63]">Monthly Disposable Surplus:</span>
-                  <span className="font-mono font-bold text-[#176B50]">
+                <div className="flex items-center justify-between text-xs pt-1 gap-2">
+                  <span className="text-[#5F6A63] truncate">Monthly Disposable Surplus:</span>
+                  <span className="font-mono font-bold text-[#176B50] shrink-0 whitespace-nowrap">
                     {formatINR(chosenNeighbourhood.monthlySurplus)}/mo
                   </span>
                 </div>
@@ -701,7 +723,7 @@ export const PlannerPanel: React.FC<PlannerPanelProps> = ({
                   <button
                     type="button"
                     onClick={() => setShowFactors(!showFactors)}
-                    className="w-full flex items-center justify-between text-[11px] font-semibold text-[#176B50] hover:text-[#125740]"
+                    className="w-full flex items-center justify-between text-[11px] font-semibold text-[#176B50] hover:text-[#125740] cursor-pointer"
                   >
                     <span>Why this recommendation?</span>
                     {showFactors ? (
@@ -713,10 +735,10 @@ export const PlannerPanel: React.FC<PlannerPanelProps> = ({
 
                   {showFactors && (
                     <div className="mt-2 p-2.5 rounded-xl bg-[#F8F9F7] border border-[#E5EAE5] text-[11px] space-y-1.5 text-[#5F6A63]">
-                      <p className="font-medium text-[#18231E]">
+                      <p className="font-medium text-[#18231E] break-words leading-relaxed">
                         {chosenNeighbourhood.whyExplanation}
                       </p>
-                      <div className="space-y-1 pt-1 border-t border-[#E5EAE5]/60 text-[10px]">
+                      <div className="space-y-1 pt-1.5 border-t border-[#E5EAE5]/60 text-[10px] leading-tight">
                         <div>• <strong>Affordability:</strong> {chosenNeighbourhood.factors.rentRatioText}</div>
                         <div>• <strong>Commute:</strong> {chosenNeighbourhood.factors.commuteText}</div>
                         <div>• <strong>Net Surplus:</strong> {chosenNeighbourhood.factors.surplusText}</div>
@@ -731,7 +753,7 @@ export const PlannerPanel: React.FC<PlannerPanelProps> = ({
 
             {/* Compact Locality List */}
             <div className="space-y-2 pt-1">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-[#5F6A63]">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-[#5F6A63] block">
                 Ranked Corridors ({filteredNeighbourhoods.length})
               </span>
               <div className="space-y-1.5 max-h-56 overflow-y-auto pr-1">
@@ -751,19 +773,19 @@ export const PlannerPanel: React.FC<PlannerPanelProps> = ({
                           : 'border-[#E5EAE5] bg-[#F8F9F7] text-[#5F6A63] hover:text-[#18231E]'
                       }`}
                     >
-                      <div className="flex items-center gap-2 truncate">
-                        <span className="w-5 h-5 rounded-full bg-white border border-[#E5EAE5] text-[10px] font-mono flex items-center justify-center shrink-0">
+                      <div className="min-w-0 flex-1 flex items-center gap-2 mr-2">
+                        <span className="w-5 h-5 rounded-full bg-white border border-[#E5EAE5] text-[10px] font-mono flex items-center justify-center shrink-0 shadow-2xs">
                           {idx + 1}
                         </span>
-                        <div className="truncate">
-                          <span className="text-[#18231E] block truncate">{item.a[0]}</span>
-                          <span className="text-[9px] font-mono text-[#5F6A63] block">
+                        <div className="min-w-0 flex-1">
+                          <span className="text-[#18231E] block truncate font-medium">{item.a[0]}</span>
+                          <span className="text-[9px] font-mono text-[#5F6A63] block truncate">
                             {item.badge}
                           </span>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2 shrink-0 font-mono text-[11px] text-right">
-                        <span>~{item.peakMin ?? item.drivingMin}m</span>
+                      <div className="flex items-center gap-2 shrink-0 font-mono text-[11px] text-right whitespace-nowrap">
+                        <span className="text-[#5F6A63]">~{item.peakMin ?? item.drivingMin}m</span>
                         <span className="font-bold text-[#18231E]">
                           ₹{Math.round(item.x.e.rent / 1000)}k
                         </span>

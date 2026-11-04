@@ -278,7 +278,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             </p>
 
             {/* Uber-Inspired Route Capsule Selector Bar */}
-            <div className="inline-flex flex-col sm:flex-row items-stretch sm:items-center bg-white/95 backdrop-blur-md p-2 rounded-2xl border border-[#E5EAE5] shadow-xs gap-2 max-w-xl w-full">
+            <div className="inline-flex flex-col sm:flex-row items-stretch sm:items-center bg-white/95 backdrop-blur-md p-2 rounded-2xl border border-[#E5EAE5] shadow-xs gap-2 max-w-2xl w-full">
               <div className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-[#F8F9F7] border border-[#E5EAE5]/60 flex-1 min-w-0">
                 <MapPin className="w-4 h-4 text-[#5F6A63] shrink-0" />
                 <span className="text-xs font-semibold text-[#18231E] truncate">
@@ -296,7 +296,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               <button
                 type="button"
                 onClick={onStartPlanning}
-                className="h-11 sm:w-10 sm:h-10 rounded-xl bg-[#176B50] hover:bg-[#125740] text-white flex items-center justify-center shrink-0 shadow-xs transition-transform active:scale-95 gap-2 px-4 sm:px-0"
+                className="h-11 sm:w-11 sm:h-10 rounded-xl bg-[#176B50] hover:bg-[#125740] text-white flex items-center justify-center shrink-0 shadow-xs transition-transform active:scale-95 gap-2 px-4 sm:px-0"
                 title="Start Planning"
               >
                 <span className="sm:hidden text-xs font-semibold">Start Plan</span>
@@ -306,9 +306,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           </div>
 
           {/* Bottom Floating Telemetry Card (Uber Reference Style) */}
-          <div className="max-w-xl w-full">
-            <div className="bg-white/95 backdrop-blur-md p-4 sm:p-5 rounded-2xl border border-[#E5EAE5] shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div className="grid grid-cols-3 gap-2 sm:flex sm:items-center sm:gap-5 text-xs w-full sm:w-auto">
+          <div className="max-w-2xl w-full">
+            <div className="bg-white/95 backdrop-blur-md p-4 sm:p-5 rounded-2xl border border-[#E5EAE5] shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div className="grid grid-cols-3 gap-2 sm:gap-4 md:gap-5 text-xs w-full md:w-auto">
                 <div className="min-w-0">
                   <div className="text-[10px] font-bold uppercase tracking-wider text-[#5F6A63] truncate">
                     Distance
@@ -338,11 +338,11 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               </div>
 
               {/* Action Buttons */}
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 shrink-0 w-full sm:w-auto">
+              <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 sm:gap-2.5 shrink-0 justify-start md:justify-end">
                 <button
                   type="button"
                   onClick={onStartPlanning}
-                  className="px-5 py-2.5 rounded-xl text-xs font-semibold text-white bg-[#176B50] hover:bg-[#125740] shadow-xs transition-all active:scale-[0.98] text-center"
+                  className="px-4 sm:px-5 py-2.5 rounded-xl text-xs font-semibold text-white bg-[#176B50] hover:bg-[#125740] shadow-xs transition-all active:scale-[0.98] text-center whitespace-nowrap"
                 >
                   Start relocation plan
                 </button>
@@ -351,7 +351,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                   <button
                     type="button"
                     onClick={onResumePlanning}
-                    className="px-3.5 py-2.5 rounded-xl text-xs font-semibold text-[#18231E] bg-[#F8F9F7] border border-[#E5EAE5] hover:bg-neutral-100 transition-colors text-center"
+                    className="px-3.5 sm:px-4 py-2.5 rounded-xl text-xs font-semibold text-[#18231E] bg-[#F8F9F7] border border-[#E5EAE5] hover:bg-neutral-100 transition-colors text-center whitespace-nowrap shadow-2xs"
                   >
                     Resume plan
                   </button>

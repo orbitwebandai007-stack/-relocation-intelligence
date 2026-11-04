@@ -317,6 +317,10 @@ export default function App() {
               onMapClickForWorkplace={handleMapClickForWorkplace}
               isPanelVisible={isPanelVisible && flowPhase === 'recommendations'}
               onTogglePanel={() => setIsPanelVisible(!isPanelVisible)}
+              onChangeWorkplace={() => {
+                setCandidateWp(state.wp);
+                updateState({ flowPhase: 'workplace_select', wpConfirmed: false });
+              }}
               className="h-full w-full"
             />
           </div>
@@ -337,25 +341,6 @@ export default function App() {
           {/* 3B. FLOATING RECOMMENDATION & DECISION PANEL (Only active in recommendations phase) */}
           {flowPhase === 'recommendations' && (
             <>
-              {/* Quick Bar to change office pin without resetting whole app */}
-              <div className="absolute top-3 left-3 z-20 hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/95 backdrop-blur-md border border-[#E5EAE5] shadow-xs text-xs">
-                <span className="text-[#5F6A63]">Office:</span>
-                <strong className="text-[#18231E] font-medium truncate max-w-[180px]">
-                  {state.wp?.name || 'Selected Hub'}
-                </strong>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setCandidateWp(state.wp);
-                    updateState({ flowPhase: 'workplace_select', wpConfirmed: false });
-                  }}
-                  className="ml-1 inline-flex items-center gap-1 text-[11px] font-bold text-[#176B50] hover:underline"
-                >
-                  <Edit3 className="w-3 h-3" />
-                  <span>Change</span>
-                </button>
-              </div>
-
               {isPanelVisible ? (
                 <div
                   className={`absolute top-2 right-2 bottom-2 left-2 sm:left-auto sm:top-3 sm:right-3 sm:bottom-3 ${
@@ -370,6 +355,7 @@ export default function App() {
                     chosenNeighbourhood={chosenNeighbourhood}
                     onUpdateState={updateState}
                     onGoStep={goToStep}
+                    onTogglePanel={() => setIsPanelVisible(!isPanelVisible)}
                   />
                 </div>
               ) : (
@@ -377,7 +363,7 @@ export default function App() {
                 <button
                   type="button"
                   onClick={() => setIsPanelVisible(true)}
-                  className="absolute bottom-5 right-5 z-20 inline-flex items-center gap-2 px-5 py-3 rounded-full bg-[#176B50] hover:bg-[#125740] text-white text-xs font-semibold shadow-xl transition-all active:scale-95 duration-150"
+                  className="absolute bottom-5 right-5 z-20 inline-flex items-center gap-2 px-5 py-3 rounded-full bg-[#176B50] hover:bg-[#125740] text-white text-xs font-semibold shadow-xl transition-all active:scale-95 duration-150 cursor-pointer"
                 >
                   <Compass className="w-4 h-4 text-[#C8E6A0]" />
                   <span>Open Decision Panel</span>

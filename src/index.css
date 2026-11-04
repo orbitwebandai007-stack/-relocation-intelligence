@@ -43,13 +43,23 @@
   font-family: inherit;
 }
 
+.maplibregl-popup,
+.custom-map-popup {
+  max-width: min(390px, 94vw) !important;
+  z-index: 30;
+}
+
+.custom-map-popup .maplibregl-popup-content,
 .maplibregl-popup-content {
   padding: 0 !important;
-  border-radius: 12px;
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.08);
-  border: 1px solid #E2E6DD;
-  overflow: hidden;
+  border-radius: 18px;
+  box-shadow: 0 16px 36px -4px rgba(0, 0, 0, 0.16), 0 4px 12px -2px rgba(0, 0, 0, 0.08);
+  border: 1px solid #DCE3DB;
+  overflow: hidden !important;
   background: #FFFFFF;
+  box-sizing: border-box !important;
+  width: max-content;
+  max-width: min(370px, 92vw) !important;
 }
 
 .maplibregl-popup-close-button {
@@ -103,47 +113,96 @@
   pointer-events: none;
 }
 
-/* Lamar circular badge markers */
-.lamar-badge-marker {
-  position: relative;
+/* Unified Locality Map Marker Pill */
+.locality-marker-pin {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: #FFFFFF;
+  padding: 4px 11px 4px 5px;
+  border-radius: 9999px;
+  border: 1.5px solid #DCE3DB;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.04);
+  font-family: 'Inter', sans-serif;
+  color: #18231E;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  pointer-events: auto;
+}
+
+.locality-marker-pin:hover {
+  transform: translateY(-2px) scale(1.04);
+  border-color: #176B50;
+  box-shadow: 0 6px 18px rgba(23, 107, 80, 0.18);
+  z-index: 999 !important;
+}
+
+.locality-marker-pin.is-active {
+  background: #176B50;
+  color: #FFFFFF;
+  border-color: #0E4835;
+  box-shadow: 0 0 0 3px rgba(23, 107, 80, 0.22), 0 8px 20px rgba(0, 0, 0, 0.18);
+  transform: translateY(-2px) scale(1.06);
+  z-index: 1000 !important;
+}
+
+.locality-marker-pin.is-shortlisted {
+  border-color: #176B50;
+  box-shadow: 0 0 0 2px rgba(23, 107, 80, 0.2);
+}
+
+.locality-marker-badge {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
+  width: 20px;
+  height: 20px;
   border-radius: 50%;
-  background-color: #176B50;
-  color: #FFFFFF;
-  border: 2px solid #FFFFFF;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.16);
+  background: #E8F4EF;
+  color: #176B50;
   font-family: 'JetBrains Mono', monospace;
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 700;
-  cursor: pointer;
-  transform: translate(-50%, -50%);
-  transition: all 0.16s cubic-bezier(0.16, 1, 0.3, 1);
+  line-height: 1;
+  flex-shrink: 0;
 }
 
-.lamar-badge-marker:hover {
-  transform: translate(-50%, -50%) scale(1.18);
-  box-shadow: 0 4px 14px rgba(23, 107, 80, 0.35);
-  z-index: 1000 !important;
+.locality-marker-badge.is-consider {
+  background: #FEF3C7;
+  color: #B45309;
 }
 
-.lamar-badge-marker.is-active {
-  background-color: #0E4835;
-  border-color: #C8E6A0;
-  box-shadow: 0 0 0 4px rgba(200, 230, 160, 0.4), 0 4px 16px rgba(0, 0, 0, 0.2);
-  transform: translate(-50%, -50%) scale(1.24);
-  z-index: 1000 !important;
+.locality-marker-badge.is-stretch {
+  background: #FFE4E6;
+  color: #BE123C;
 }
 
-.lamar-badge-marker.is-consider {
-  background-color: #B45309;
+.locality-marker-pin.is-active .locality-marker-badge {
+  background: #C8E6A0;
+  color: #0E4835;
 }
 
-.lamar-badge-marker.is-stretch {
-  background-color: #BE123C;
+.locality-marker-name {
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: -0.01em;
+}
+
+.locality-marker-rent {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  padding-left: 6px;
+  border-left: 1px solid #E5EAE5;
+  color: #5F6A63;
+}
+
+.locality-marker-pin.is-active .locality-marker-rent {
+  border-left-color: rgba(255, 255, 255, 0.3);
+  color: #C8E6A0;
 }
 
 .custom-office-marker {
@@ -151,66 +210,32 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  background: #176B50;
+  gap: 7px;
+  background: #111A15;
   color: #FFFFFF;
-  padding: 6px 14px;
+  padding: 5px 12px 5px 6px;
   border-radius: 9999px;
-  border: 2px solid #FFFFFF;
-  box-shadow: 0 4px 16px rgba(23, 107, 80, 0.35);
+  border: 1.5px solid #2B4537;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.4), 0 0 0 2px rgba(200, 230, 160, 0.25);
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 11px;
   font-weight: 700;
   line-height: 1;
   white-space: nowrap;
-  transform: translate(-50%, -50%);
   pointer-events: auto;
+  z-index: 1001 !important;
 }
 
-.custom-locality-marker {
+.custom-office-icon-badge {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  background: #FFFFFF;
-  padding: 5px 12px;
-  border-radius: 9999px;
-  border: 1px solid #E5EAE5;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.04);
-  font-family: 'Inter', sans-serif;
-  font-size: 11px;
-  font-weight: 600;
-  line-height: 1;
-  color: #18231E;
-  white-space: nowrap;
-  transform: translate(-50%, -50%);
-  cursor: pointer;
-  transition: all 0.16s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.custom-locality-marker:hover {
-  transform: translate(-50%, -50%) translateY(-2px);
-  border-color: #176B50;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.12);
-  z-index: 1000 !important;
-}
-
-.custom-locality-marker.is-active {
-  border-color: #176B50;
-  box-shadow: 0 0 0 3px rgba(23, 107, 80, 0.18), 0 6px 18px rgba(0,0,0,0.15);
-  transform: translate(-50%, -50%) translateY(-2px);
-  z-index: 1000 !important;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
   background: #176B50;
-  color: #FFFFFF;
-}
-
-.custom-locality-marker.is-active .marker-dot {
-  background-color: #C8E6A0;
-}
-
-.custom-locality-marker.is-shortlisted {
-  border-color: #176B50;
-  background: #F4FAF7;
+  color: #C8E6A0;
+  flex-shrink: 0;
 }
 
 .marker-dot {
