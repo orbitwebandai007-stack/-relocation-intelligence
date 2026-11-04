@@ -80,8 +80,9 @@ export const MapComponent: React.FC<MapComponentProps> = ({
       maplibregl.config.WORKER_URL = '/maplibre-gl-worker.mjs';
     }
 
-    const centerLng = workplace ? workplace.lng : CITIES[city].center[1];
-    const centerLat = workplace ? workplace.lat : CITIES[city].center[0];
+    const currentCityData = CITIES[city] || CITIES.blr;
+    const centerLng = workplace ? workplace.lng : currentCityData.center[1];
+    const centerLat = workplace ? workplace.lat : currentCityData.center[0];
 
     // High quality light, low-contrast raster basemap
     const map = new maplibregl.Map({

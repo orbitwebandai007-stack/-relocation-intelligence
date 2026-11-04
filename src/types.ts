@@ -1,6 +1,6 @@
 import { RouteInfo } from './services/routingService';
 
-export type CityKey = 'blr' | 'ncr';
+export type CityKey = 'blr' | 'ncr' | 'bom' | 'pun' | 'hyd' | 'che' | string;
 
 export type AccommodationType = 'alone' | 'share' | 'pg';
 
@@ -50,7 +50,13 @@ export type TransitData = [string, number, number]; // [name, lat, lng]
 export interface CityData {
   key: CityKey;
   name: string;
+  stateName: string;
   center: [number, number];
+  depositMonthsRange: [number, number]; // [min, max]
+  defaultDepositMonths: number;
+  standardBrokerageMonths: number;
+  acMonthlyModifier: number;
+  description: string;
   hubs: [string, number, number][];
   areas: AreaData[];
 }
@@ -104,6 +110,55 @@ export interface ScoredNeighbourhood {
   vis: boolean;
 }
 
+export interface MovingCostBreakdown {
+  securityDeposit: number;
+  depositMonths: number;
+  brokerageFee: number;
+  brokerageMonths: number;
+  moversPackers: number;
+  initialSetupReserve: number;
+  totalMovingOutlay: number;
+  assumptions: {
+    depositRule: string;
+    brokerageRule: string;
+    movingDistanceTier: string;
+    setupRule: string;
+  };
+}
+
+export type VerdictStatus =
+  | 'highly_favourable'
+  | 'favourable_tradeoffs'
+  | 'marginal_gain'
+  | 'high_financial_risk';
+
+export interface VerdictPillar {
+  label: string;
+  status: 'pass' | 'warning' | 'fail';
+  metric: string;
+  detail: string;
+}
+
+export interface RelocationVerdict {
+  status: VerdictStatus;
+  badgeLabel: string;
+  headline: string;
+  rationale: string;
+  pillars: {
+    surplus: VerdictPillar;
+    savingsRate: VerdictPillar;
+    liquidity: VerdictPillar;
+    commute: VerdictPillar;
+  };
+  paybackMonths: number;
+  netAnnualRelocationGain: number;
+  currentSavings: number;
+  destSavings: number;
+  savingsDeltaMonthly: number;
+  currentSavingsRate: number;
+  destSavingsRate: number;
+}
+
 export interface FilterState {
   r: string; // rent band index or ''
   c: string; // max commute or ''
@@ -134,10 +189,12 @@ export interface RelocationState {
   tab: 'rep' | 'cmp' | 'plan';
   city: CityKey;
   wp: WorkplaceHub | null;
-  sal: number;
-  tgt: number;
+  sal: number; // Destination in-hand monthly salary
+  currentSal: number; // Current city in-hand monthly salary
+  currentExpenses: number; // Current city monthly living expenses
+  tgt: number; // Monthly savings goal
   tm: 'target' | 'calc';
-  com: number;
+  com: number; // Fixed debt / EMI commitments
   acc: AccommodationType;
   prop: PropertyType;
   food: FoodHabit;
@@ -146,7 +203,12 @@ export interface RelocationState {
   maxc: number;
   sel: number[]; // shortlisted neighbourhood indices
   ov: Partial<Record<ExpenseCategory, number>>;
+  // Transparent moving cost overrides
+  depositMonthsOverride?: number;
+  brokerageOverride?: number;
+  moversOverride?: number;
+  setupOverride?: number;
   f: FilterState;
-  from: string;
+  from: string; // Origin city
   weights?: ScoringWeights;
 }

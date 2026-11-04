@@ -21,10 +21,12 @@ import {
   PROPERTIES,
   TRANSPORT_MODES,
   calculateNeighbourhoods,
+  calculateRent,
   estimateExpenses,
   formatINR,
   getTarget,
 } from '../data/relocationData';
+import { RelocationBlueprint } from './RelocationBlueprint';
 import {
   MapPin,
   Search,
@@ -50,6 +52,7 @@ import {
   ShieldCheck,
   Layers,
   Sparkles,
+  Info,
 } from 'lucide-react';
 
 interface PlannerPanelProps {
@@ -67,7 +70,7 @@ export const PlannerPanel: React.FC<PlannerPanelProps> = ({
   onUpdateState,
   onGoStep,
 }) => {
-  const currentCity = CITIES[state.city];
+  const currentCity = CITIES[state.city] || CITIES.blr;
   const wp = state.wp || {
     name: currentCity.hubs[0][0],
     lat: currentCity.hubs[0][1],
@@ -78,20 +81,8 @@ export const PlannerPanel: React.FC<PlannerPanelProps> = ({
   const [hubSearch, setHubSearch] = useState('');
   const [hubSearchErr, setHubSearchErr] = useState('');
 
-  // Local state for Step 2 (Discovery progressive disclosure)
-  const [discoveryExpanded, setDiscoveryExpanded] = useState(false);
-
-  // Local state for Step 5 (Report saving)
-  const [planTitle, setPlanTitle] = useState('');
-  const [saveSuccessMsg, setSaveSuccessMsg] = useState('');
-  const [savedPlans, setSavedPlans] = useState<SavedPlan[]>(() => {
-    try {
-      const stored = localStorage.getItem('ri_saved_plans_v2');
-      return stored ? JSON.parse(stored) : [];
-    } catch (e) {
-      return [];
-    }
-  });
+  // Local state for Current Baseline toggle in Step 1
+  const [showBaselineDetails, setShowBaselineDetails] = useState(false);
 
   // Calculate live financial figures
   const currentEst = estimateExpenses(
@@ -107,7 +98,8 @@ export const PlannerPanel: React.FC<PlannerPanelProps> = ({
 
   // Step 0 Handlers
   const handleCitySelect = (cityKey: CityKey) => {
-    const defaultHub = CITIES[cityKey].hubs[0];
+    const selectedCity = CITIES[cityKey] || CITIES.blr;
+    const defaultHub = selectedCity.hubs[0];
     onUpdateState({
       city: cityKey,
       wp: {
@@ -140,7 +132,7 @@ export const PlannerPanel: React.FC<PlannerPanelProps> = ({
       });
       setHubSearchErr('');
     } else {
-      setHubSearchErr('Hub not found. Choose from the curated hubs above.');
+      setHubSearchErr('Hub not found. Choose from the curated hubs above or select a major corridor.');
     }
   };
 
@@ -172,7 +164,6 @@ export const PlannerPanel: React.FC<PlannerPanelProps> = ({
     onUpdateState({
       acc,
       prop: defaultProp[acc],
-      ov: {},
     });
   };
 
@@ -188,31 +179,6 @@ export const PlannerPanel: React.FC<PlannerPanelProps> = ({
         [cat]: Math.max(0, value),
       },
     });
-  };
-
-  // Step 5 Saved Plans handler
-  const handleSavePlan = () => {
-    const title =
-      planTitle.trim() ||
-      `${currentCity.name} · ${chosenNeighbourhood.a[0]} (${formatINR(state.sal)})`;
-    const newPlan: SavedPlan = {
-      id: Date.now().toString(),
-      timestamp: new Date().toLocaleDateString('en-IN', {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric',
-      }),
-      title,
-      state: { ...state },
-    };
-    const updated = [newPlan, ...savedPlans.slice(0, 9)];
-    setSavedPlans(updated);
-    try {
-      localStorage.setItem('ri_saved_plans_v2', JSON.stringify(updated));
-      setSaveSuccessMsg('Plan saved to browser storage!');
-      setPlanTitle('');
-      setTimeout(() => setSaveSuccessMsg(''), 3000);
-    } catch (e) {}
   };
 
   // Filtered neighbourhoods for Step 2
@@ -234,15 +200,8 @@ export const PlannerPanel: React.FC<PlannerPanelProps> = ({
     });
   }, [scoredNeighbourhoods, state.f]);
 
-  // Cross-city calculation for Step 5
-  const otherCityKey: CityKey = state.city === 'blr' ? 'ncr' : 'blr';
-  const otherCity = CITIES[otherCityKey];
-  const otherHub = otherCity.hubs[0];
-  const otherWp = { name: otherHub[0], lat: otherHub[1], lng: otherHub[2] };
-  const otherCityScored = calculateNeighbourhoods(otherCityKey, otherWp, state);
-  const otherCityTop = otherCityScored[0];
-  const otherCityEst = otherCityTop ? otherCityTop.x : currentEst;
-  const salaryNeededInOtherCity = otherCityEst.tot + state.com + targetSavings;
+  // Cities list for destination switcher
+  const availableCities = Object.values(CITIES);
 
   return (
     <div className="h-full flex flex-col justify-between overflow-hidden bg-white">
@@ -253,20 +212,20 @@ export const PlannerPanel: React.FC<PlannerPanelProps> = ({
           <div className="space-y-6">
             <div>
               <div className="text-[11px] font-mono font-bold uppercase tracking-wider text-[#176B50] mb-1">
-                Step 01 · Destination & Workplace
+                Step 01 · Destination & Workplace Hub
               </div>
               <h2 className="text-xl sm:text-2xl font-bold text-[#18231E] font-heading tracking-tight">
-                Where is your next office?
+                Where is your relocation destination?
               </h2>
               <p className="text-xs text-[#5F6A63] mt-1 leading-relaxed">
-                Road commute velocity in Indian tech corridors shapes quality of life. Select your target city and campus center.
+                Commute duration in Indian tech corridors shapes daily quality of life. Select your target city and employment center.
               </p>
             </div>
 
             {/* Moving from */}
             <div className="space-y-2">
               <label className="text-[10px] font-bold uppercase tracking-wider text-[#5F6A63]">
-                Relocating From
+                Relocating From (Current City)
               </label>
               <div className="relative">
                 <MapPin className="w-4 h-4 text-[#5F6A63] absolute left-3 top-1/2 -translate-y-1/2" />
@@ -274,54 +233,51 @@ export const PlannerPanel: React.FC<PlannerPanelProps> = ({
                   type="text"
                   value={state.from}
                   onChange={(e) => onUpdateState({ from: e.target.value })}
-                  placeholder="e.g. Mumbai, Pune, Hyderabad..."
+                  placeholder="e.g. Pune, Mumbai, Hyderabad, Kolkata..."
                   className="w-full pl-9 pr-3 py-2 bg-[#F8F9F7] border border-[#E5EAE5] rounded-xl text-xs font-semibold text-[#18231E] focus:outline-none focus:ring-2 focus:ring-[#176B50]/20 focus:border-[#176B50]"
                 />
               </div>
             </div>
 
-            {/* Destination City Selection */}
+            {/* Scalable Multi-City Destination Selection */}
             <div className="space-y-2">
-              <label className="text-[10px] font-bold uppercase tracking-wider text-[#5F6A63]">
-                Target Destination
-              </label>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => handleCitySelect('blr')}
-                  className={`p-3 rounded-xl border text-left transition-all ${
-                    state.city === 'blr'
-                      ? 'border-[#176B50] bg-[#E8F4EF] text-[#176B50] ring-1 ring-[#176B50]'
-                      : 'border-[#E5EAE5] bg-[#F8F9F7] text-[#18231E] hover:bg-neutral-100'
-                  }`}
-                >
-                  <div className="font-bold text-xs">Bengaluru</div>
-                  <div className="text-[10px] text-[#5F6A63] mt-0.5">
-                    Deposit: 6–10 mo
-                  </div>
-                </button>
+              <div className="flex items-center justify-between">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-[#5F6A63]">
+                  Target Destination City
+                </label>
+                <span className="text-[10px] font-mono text-[#176B50]">
+                  {availableCities.length} Cities Supported
+                </span>
+              </div>
 
-                <button
-                  type="button"
-                  onClick={() => handleCitySelect('ncr')}
-                  className={`p-3 rounded-xl border text-left transition-all ${
-                    state.city === 'ncr'
-                      ? 'border-[#176B50] bg-[#E8F4EF] text-[#176B50] ring-1 ring-[#176B50]'
-                      : 'border-[#E5EAE5] bg-[#F8F9F7] text-[#18231E] hover:bg-neutral-100'
-                  }`}
-                >
-                  <div className="font-bold text-xs">Delhi NCR</div>
-                  <div className="text-[10px] text-[#5F6A63] mt-0.5">
-                    Deposit: 2–3 mo
-                  </div>
-                </button>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                {availableCities.map((c) => {
+                  const isSelected = state.city === c.key;
+                  return (
+                    <button
+                      key={c.key}
+                      type="button"
+                      onClick={() => handleCitySelect(c.key)}
+                      className={`p-2.5 rounded-xl border text-left transition-all ${
+                        isSelected
+                          ? 'border-[#176B50] bg-[#E8F4EF] text-[#176B50] ring-1 ring-[#176B50] shadow-xs'
+                          : 'border-[#E5EAE5] bg-[#F8F9F7] text-[#18231E] hover:bg-neutral-100'
+                      }`}
+                    >
+                      <div className="font-bold text-xs truncate">{c.name}</div>
+                      <div className="text-[10px] text-[#5F6A63] mt-0.5 truncate">
+                        Deposit: {c.depositMonthsRange[0]}–{c.depositMonthsRange[1]} mo
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
-            {/* Curated Employment Hubs */}
+            {/* Curated Employment Hubs for Selected City */}
             <div className="space-y-2">
               <label className="text-[10px] font-bold uppercase tracking-wider text-[#5F6A63]">
-                Workplace Employment Hub in {currentCity.name}
+                Workplace Tech Park / Campus in {currentCity.name}
               </label>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {currentCity.hubs.map((hub) => {
@@ -355,7 +311,7 @@ export const PlannerPanel: React.FC<PlannerPanelProps> = ({
             {/* Custom Hub Search */}
             <div className="space-y-1.5 pt-2 border-t border-[#E5EAE5]">
               <label className="text-xs font-semibold text-[#18231E]">
-                Or search specific tech park / locality:
+                Or search specific tech park / business district:
               </label>
               <div className="relative">
                 <Search className="w-4 h-4 text-[#5F6A63] absolute left-3 top-1/2 -translate-y-1/2" />
@@ -363,7 +319,7 @@ export const PlannerPanel: React.FC<PlannerPanelProps> = ({
                   type="text"
                   value={hubSearch}
                   onChange={(e) => handleHubSearch(e.target.value)}
-                  placeholder={`Search areas in ${currentCity.name}...`}
+                  placeholder={`Search corridors in ${currentCity.name}...`}
                   className="w-full pl-9 pr-3 py-2 bg-[#F8F9F7] border border-[#E5EAE5] rounded-xl text-xs font-medium text-[#18231E] focus:outline-none focus:ring-2 focus:ring-[#176B50]/20 focus:border-[#176B50]"
                 />
               </div>
@@ -384,27 +340,32 @@ export const PlannerPanel: React.FC<PlannerPanelProps> = ({
           </div>
         )}
 
-        {/* ================= STEP 1: SALARY ================= */}
+        {/* ================= STEP 1: SALARY & BASELINE ================= */}
         {state.st === 1 && (
           <div className="space-y-6">
             <div>
               <div className="text-[11px] font-mono font-bold uppercase tracking-wider text-[#176B50] mb-1">
-                Step 02 · Compensation & Savings
+                Step 02 · Compensation & Current Baseline
               </div>
               <h2 className="text-xl sm:text-2xl font-bold text-[#18231E] font-heading tracking-tight">
-                Establish take-home cashflow.
+                Establish in-hand cashflow.
               </h2>
               <p className="text-xs text-[#5F6A63] mt-1 leading-relaxed">
-                Enter your real monthly take-home salary after income tax and employee PF.
+                Enter your destination monthly take-home salary and current city living baseline to calculate your true relocation gain.
               </p>
             </div>
 
-            {/* Take-home Salary Input */}
+            {/* Destination Take-home Salary Input */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-[#5F6A63]">
-                  Monthly Take-Home
-                </label>
+                <div>
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-[#176B50]">
+                    Destination In-Hand Take-Home ({currentCity.name})
+                  </label>
+                  <p className="text-[10px] text-[#5F6A63]">
+                    Net monthly credited after New Tax Regime & PF (not CTC / 12)
+                  </p>
+                </div>
                 <span className="font-mono font-bold text-base text-[#176B50]">
                   {formatINR(state.sal)}/mo
                 </span>
@@ -416,7 +377,7 @@ export const PlannerPanel: React.FC<PlannerPanelProps> = ({
                 </span>
                 <input
                   type="number"
-                  min="10000"
+                  min="15000"
                   step="2500"
                   value={state.sal}
                   onChange={(e) =>
@@ -426,19 +387,9 @@ export const PlannerPanel: React.FC<PlannerPanelProps> = ({
                 />
               </div>
 
-              <input
-                type="range"
-                min="20000"
-                max="300000"
-                step="5000"
-                value={state.sal}
-                onChange={(e) => onUpdateState({ sal: Number(e.target.value) })}
-                className="w-full h-2 bg-neutral-200 rounded-lg cursor-pointer mt-2"
-              />
-
               {/* Quick Presets */}
               <div className="flex flex-wrap items-center gap-1.5 pt-1">
-                {[50000, 75000, 100000, 150000, 200000].map((val) => (
+                {[60000, 80000, 100000, 130000, 160000, 200000].map((val) => (
                   <button
                     key={val}
                     type="button"
@@ -455,11 +406,64 @@ export const PlannerPanel: React.FC<PlannerPanelProps> = ({
               </div>
             </div>
 
+            {/* Current City Baseline (For accurate Delta comparison) */}
+            <div className="p-4 rounded-xl bg-[#F8F9F7] border border-[#E5EAE5] space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <span className="text-xs font-bold text-[#18231E] block">
+                    Current City Baseline ({state.from || 'Origin'})
+                  </span>
+                  <span className="text-[10px] text-[#5F6A63]">
+                    Used to compare your current savings vs. destination relocation reality.
+                  </span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 pt-1">
+                <div>
+                  <label className="text-[10px] font-semibold text-[#5F6A63] block mb-1">
+                    Current Take-Home (₹)
+                  </label>
+                  <input
+                    type="number"
+                    step="2000"
+                    value={state.currentSal}
+                    onChange={(e) =>
+                      onUpdateState({ currentSal: Math.max(0, Number(e.target.value)) })
+                    }
+                    className="w-full px-3 py-1.5 bg-white border border-[#E5EAE5] rounded-lg text-xs font-mono font-bold text-[#18231E]"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[10px] font-semibold text-[#5F6A63] block mb-1">
+                    Current Monthly Expenses (₹)
+                  </label>
+                  <input
+                    type="number"
+                    step="2000"
+                    value={state.currentExpenses}
+                    onChange={(e) =>
+                      onUpdateState({ currentExpenses: Math.max(0, Number(e.target.value)) })
+                    }
+                    className="w-full px-3 py-1.5 bg-white border border-[#E5EAE5] rounded-lg text-xs font-mono font-bold text-[#18231E]"
+                  />
+                </div>
+              </div>
+
+              <div className="text-[11px] text-[#5F6A63] flex justify-between pt-1 border-t border-[#E5EAE5]/60">
+                <span>Current Monthly Savings:</span>
+                <strong className="font-mono text-[#18231E]">
+                  {formatINR(Math.max(0, state.currentSal - state.currentExpenses - state.com))}/mo
+                </strong>
+              </div>
+            </div>
+
             {/* Non-negotiable Commitments */}
             <div className="space-y-2 pt-2 border-t border-[#E5EAE5]">
               <div className="flex items-center justify-between">
                 <label className="text-[10px] font-bold uppercase tracking-wider text-[#5F6A63]">
-                  Fixed Commitments (Loans / EMIs)
+                  Fixed Commitments (Loans / EMIs / Family support)
                 </label>
                 <span className="font-mono font-bold text-xs text-[#18231E]">
                   {formatINR(state.com)}/mo
@@ -484,61 +488,23 @@ export const PlannerPanel: React.FC<PlannerPanelProps> = ({
 
             {/* Target Savings Mode */}
             <div className="space-y-2 pt-2 border-t border-[#E5EAE5]">
-              <label className="text-[10px] font-bold uppercase tracking-wider text-[#5F6A63]">
-                Monthly Savings Target
-              </label>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => onUpdateState({ tm: 'target' })}
-                  className={`p-2.5 rounded-xl border text-xs font-semibold text-left ${
-                    state.tm === 'target'
-                      ? 'border-[#176B50] bg-[#E8F4EF] text-[#176B50]'
-                      : 'border-[#E5EAE5] bg-[#F8F9F7] text-[#18231E]'
-                  }`}
-                >
-                  Fixed Target
-                </button>
-                <button
-                  type="button"
-                  onClick={() => onUpdateState({ tm: 'calc' })}
-                  className={`p-2.5 rounded-xl border text-xs font-semibold text-left ${
-                    state.tm === 'calc'
-                      ? 'border-[#176B50] bg-[#E8F4EF] text-[#176B50]'
-                      : 'border-[#E5EAE5] bg-[#F8F9F7] text-[#18231E]'
-                  }`}
-                >
-                  Maximize Surplus
-                </button>
+              <div className="flex items-center justify-between">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-[#5F6A63]">
+                  Monthly Savings Target
+                </label>
+                <span className="font-mono font-bold text-xs text-[#176B50]">
+                  {formatINR(state.tgt)}/mo
+                </span>
               </div>
-
-              {state.tm === 'target' && (
-                <div className="pt-2 space-y-1">
-                  <div className="flex justify-between text-xs">
-                    <span className="text-[#5F6A63]">Target Rupee Goal:</span>
-                    <span className="font-mono font-bold text-[#176B50]">
-                      {formatINR(state.tgt)}/mo
-                    </span>
-                  </div>
-                  <input
-                    type="range"
-                    min="5000"
-                    max={Math.max(10000, state.sal - state.com)}
-                    step="2500"
-                    value={state.tgt}
-                    onChange={(e) => onUpdateState({ tgt: Number(e.target.value) })}
-                    className="w-full h-2 bg-neutral-200 rounded-lg cursor-pointer"
-                  />
-                </div>
-              )}
-            </div>
-
-            {/* Derived Housing Pool indicator */}
-            <div className="p-3 rounded-xl bg-[#F8F9F7] border border-[#E5EAE5] flex items-center justify-between text-xs">
-              <span className="text-[#5F6A63]">Allocated Housing & Living Pool:</span>
-              <span className="font-mono font-bold text-[#18231E]">
-                ~{formatINR(Math.max(0, availableBudget))}/mo
-              </span>
+              <input
+                type="range"
+                min="5000"
+                max={Math.max(10000, state.sal - state.com)}
+                step="2500"
+                value={state.tgt}
+                onChange={(e) => onUpdateState({ tgt: Number(e.target.value) })}
+                className="w-full h-2 bg-neutral-200 rounded-lg cursor-pointer"
+              />
             </div>
           </div>
         )}
@@ -551,10 +517,10 @@ export const PlannerPanel: React.FC<PlannerPanelProps> = ({
                 Step 03 · Locality Discovery & Ranking
               </div>
               <h2 className="text-xl sm:text-2xl font-bold text-[#18231E] font-heading tracking-tight">
-                Recommended Localities
+                Corridors in {currentCity.name}
               </h2>
               <p className="text-xs text-[#5F6A63] mt-1">
-                Click any neighbourhood on the map or list to inspect commute and rent benchmarks.
+                Click any neighbourhood below or on the map to evaluate road commute to {wp.name}.
               </p>
             </div>
 
@@ -568,7 +534,7 @@ export const PlannerPanel: React.FC<PlannerPanelProps> = ({
                   onChange={(e) =>
                     onUpdateState({ f: { ...state.f, q: e.target.value } })
                   }
-                  placeholder="Filter localities..."
+                  placeholder={`Search corridors in ${currentCity.name}...`}
                   className="w-full pl-9 pr-3 py-1.5 bg-[#F8F9F7] border border-[#E5EAE5] rounded-xl text-xs font-medium text-[#18231E] focus:outline-none focus:ring-2 focus:ring-[#176B50]/20 focus:border-[#176B50]"
                 />
               </div>
@@ -599,25 +565,25 @@ export const PlannerPanel: React.FC<PlannerPanelProps> = ({
                 </button>
                 <button
                   type="button"
-                  onClick={() => onUpdateState({ f: { ...state.f, c: '30' } })}
+                  onClick={() => onUpdateState({ f: { ...state.f, c: '35' } })}
                   className={`px-2.5 py-1 rounded-lg text-xs font-medium whitespace-nowrap ${
-                    state.f.c === '30'
+                    state.f.c === '35'
                       ? 'bg-[#176B50] text-white'
                       : 'bg-[#F8F9F7] border border-[#E5EAE5] text-[#5F6A63]'
                   }`}
                 >
-                  &lt; 30 min
+                  &lt; 35 min
                 </button>
               </div>
             </div>
 
-            {/* Currently Selected Locality Inspection Card */}
+            {/* Currently Active Locality Card */}
             {chosenNeighbourhood && (
               <div className="p-4 rounded-2xl border border-[#176B50] bg-white ring-2 ring-[#176B50]/15 shadow-sm space-y-3">
                 <div className="flex items-start justify-between gap-2">
                   <div>
                     <span className="text-[10px] font-bold uppercase tracking-wider text-[#176B50]">
-                      Active Selection
+                      Primary Selection
                     </span>
                     <h3 className="text-base font-bold text-[#18231E]">
                       {chosenNeighbourhood.a[0]}
@@ -671,16 +637,19 @@ export const PlannerPanel: React.FC<PlannerPanelProps> = ({
             {/* Compact Locality List */}
             <div className="space-y-2 pt-1">
               <span className="text-[10px] font-bold uppercase tracking-wider text-[#5F6A63]">
-                All Ranked Corridors ({filteredNeighbourhoods.length})
+                Ranked Corridors ({filteredNeighbourhoods.length})
               </span>
               <div className="space-y-1.5 max-h-56 overflow-y-auto pr-1">
                 {filteredNeighbourhoods.map((item, idx) => {
                   const isSelected = item.i === chosenNeighbourhood.i;
-                  const isShortlisted = state.sel.includes(item.i);
                   return (
                     <div
                       key={item.i}
-                      onClick={() => onUpdateState({ sel: [item.i, ...state.sel.filter(x => x !== item.i)].slice(0, 3) })}
+                      onClick={() =>
+                        onUpdateState({
+                          sel: [item.i, ...state.sel.filter((x) => x !== item.i)].slice(0, 3),
+                        })
+                      }
                       className={`p-2.5 rounded-xl border text-xs cursor-pointer flex items-center justify-between transition-all ${
                         isSelected
                           ? 'border-[#176B50] bg-[#E8F4EF] font-semibold text-[#18231E]'
@@ -712,13 +681,13 @@ export const PlannerPanel: React.FC<PlannerPanelProps> = ({
           <div className="space-y-6">
             <div>
               <div className="text-[11px] font-mono font-bold uppercase tracking-wider text-[#176B50] mb-1">
-                Step 04 · Lifestyle & Comfort Tiers
+                Step 04 · Lifestyle & Housing Standards
               </div>
               <h2 className="text-xl sm:text-2xl font-bold text-[#18231E] font-heading tracking-tight">
                 Living Preferences
               </h2>
               <p className="text-xs text-[#5F6A63] mt-1 leading-relaxed">
-                Choose accommodation structure, dining routine, and daily transit mode.
+                Define accommodation type, domestic food routine, and daily commute mode.
               </p>
             </div>
 
@@ -755,7 +724,7 @@ export const PlannerPanel: React.FC<PlannerPanelProps> = ({
                   <button
                     key={propKey}
                     type="button"
-                    onClick={() => onUpdateState({ prop: propKey, ov: {} })}
+                    onClick={() => onUpdateState({ prop: propKey })}
                     className={`px-2 py-2 rounded-xl border text-xs font-semibold text-center transition-all ${
                       state.prop === propKey
                         ? 'border-[#176B50] bg-[#176B50] text-white'
@@ -768,6 +737,15 @@ export const PlannerPanel: React.FC<PlannerPanelProps> = ({
               </div>
             </div>
 
+            {/* Upfront Deposit Preview Badge */}
+            <div className="p-3 rounded-xl bg-[#E8F4EF] border border-[#176B50]/20 flex items-center justify-between text-xs">
+              <span className="text-[#5F6A63]">Estimated Security Deposit in {currentCity.name}:</span>
+              <span className="font-mono font-bold text-[#176B50]">
+                ~{formatINR(calculateRent(state.city, 1.2, state.prop) * currentCity.defaultDepositMonths)}
+                <span className="text-[10px] font-normal text-[#5F6A63]"> ({currentCity.defaultDepositMonths} mo)</span>
+              </span>
+            </div>
+
             {/* Food Habits */}
             <div className="space-y-2 pt-2 border-t border-[#E5EAE5]">
               <label className="text-[10px] font-bold uppercase tracking-wider text-[#5F6A63]">
@@ -778,7 +756,7 @@ export const PlannerPanel: React.FC<PlannerPanelProps> = ({
                   <button
                     key={fKey}
                     type="button"
-                    onClick={() => onUpdateState({ food: fKey, ov: {} })}
+                    onClick={() => onUpdateState({ food: fKey })}
                     className={`w-full p-2.5 rounded-xl border text-left text-xs font-medium flex items-center justify-between ${
                       state.food === fKey
                         ? 'border-[#176B50] bg-[#E8F4EF] text-[#176B50]'
@@ -804,7 +782,7 @@ export const PlannerPanel: React.FC<PlannerPanelProps> = ({
                   <button
                     key={tKey}
                     type="button"
-                    onClick={() => onUpdateState({ tr: tKey, ov: {} })}
+                    onClick={() => onUpdateState({ tr: tKey })}
                     className={`p-2 rounded-xl border text-left text-xs truncate ${
                       state.tr === tKey
                         ? 'border-[#176B50] bg-[#E8F4EF] text-[#176B50] font-semibold'
@@ -827,7 +805,7 @@ export const PlannerPanel: React.FC<PlannerPanelProps> = ({
                   <button
                     key={tierKey}
                     type="button"
-                    onClick={() => onUpdateState({ life: tierKey, ov: {} })}
+                    onClick={() => onUpdateState({ life: tierKey })}
                     className={`p-2 rounded-xl border text-xs font-semibold text-center ${
                       state.life === tierKey
                         ? 'border-[#176B50] bg-[#E8F4EF] text-[#176B50]'
@@ -853,7 +831,7 @@ export const PlannerPanel: React.FC<PlannerPanelProps> = ({
                 Financial Breakdown
               </h2>
               <p className="text-xs text-[#5F6A63] mt-1">
-                Real projections in {chosenNeighbourhood.a[0]}. Adjust sliders to test budget variations.
+                Estimated outflow in {chosenNeighbourhood.a[0]}, {currentCity.name}. Adjust sliders to test budget variations.
               </p>
             </div>
 
@@ -861,7 +839,7 @@ export const PlannerPanel: React.FC<PlannerPanelProps> = ({
             <div className="grid grid-cols-2 gap-2 text-xs">
               <div className="p-3 rounded-xl bg-[#F8F9F7] border border-[#E5EAE5]">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-[#5F6A63]">
-                  Take-Home
+                  Destination Take-Home
                 </span>
                 <div className="font-mono font-bold text-sm text-[#18231E] mt-0.5">
                   {formatINR(state.sal)}
@@ -879,7 +857,7 @@ export const PlannerPanel: React.FC<PlannerPanelProps> = ({
 
               <div className="p-3 rounded-xl bg-[#F8F9F7] border border-[#E5EAE5]">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-[#5F6A63]">
-                  Commitments
+                  Fixed Commitments
                 </span>
                 <div className="font-mono font-bold text-sm text-[#18231E] mt-0.5">
                   {formatINR(state.com)}
@@ -888,7 +866,7 @@ export const PlannerPanel: React.FC<PlannerPanelProps> = ({
 
               <div className="p-3 rounded-xl bg-[#E8F4EF] border border-[#176B50]/20">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-[#176B50]">
-                  Net Surplus
+                  Net Monthly Surplus
                 </span>
                 <div className="font-mono font-bold text-sm text-[#176B50] mt-0.5">
                   {formatINR(currentEst.sav)}
@@ -896,7 +874,7 @@ export const PlannerPanel: React.FC<PlannerPanelProps> = ({
               </div>
             </div>
 
-            {/* Stacked Distribution Bar */}
+            {/* Outflow Category Bars */}
             <div className="space-y-2 pt-2 border-t border-[#E5EAE5]">
               <span className="text-[10px] font-bold uppercase tracking-wider text-[#5F6A63]">
                 Monthly Outflow Distribution
@@ -975,93 +953,21 @@ export const PlannerPanel: React.FC<PlannerPanelProps> = ({
           </div>
         )}
 
-        {/* ================= STEP 5: REPORT ================= */}
+        {/* ================= STEP 5: RELOCATION BLUEPRINT ================= */}
         {state.st === 5 && (
-          <div className="space-y-6">
-            <div>
-              <div className="text-[11px] font-mono font-bold uppercase tracking-wider text-[#176B50] mb-1">
-                Step 06 · Executive Relocation Brief
-              </div>
-              <h2 className="text-xl sm:text-2xl font-bold text-[#18231E] font-heading tracking-tight">
-                Final Summary & Audit
-              </h2>
-              <p className="text-xs text-[#5F6A63] mt-1">
-                Decision brief for {chosenNeighbourhood.a[0]}, {currentCity.name}.
-              </p>
-            </div>
-
-            {/* Top Verdict Card */}
-            <div className="p-4 rounded-2xl bg-[#E8F4EF] border border-[#176B50]/20 space-y-2 text-xs">
-              <div className="flex items-center justify-between">
-                <span className="font-bold text-[#18231E] text-sm">
-                  {chosenNeighbourhood.a[0]}
-                </span>
-                <span className="font-mono font-bold text-[#176B50] text-sm">
-                  {formatINR(currentEst.sav)}/mo
-                </span>
-              </div>
-              <p className="text-[#5F6A63] text-[11px]">
-                {savingsRate}% savings rate after all rent, food, commute, and debt commitments.
-              </p>
-            </div>
-
-            {/* Cross-City Parity Requirement */}
-            <div className="p-3.5 rounded-xl bg-[#F8F9F7] border border-[#E5EAE5] text-xs space-y-1">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-[#5F6A63]">
-                {otherCity.name} Salary Parity
-              </span>
-              <div className="font-mono font-bold text-sm text-[#18231E]">
-                {formatINR(salaryNeededInOtherCity)} / month
-              </div>
-              <p className="text-[11px] text-[#5F6A63]">
-                Monthly in-hand offer required in {otherCity.name} to match this savings rate.
-              </p>
-            </div>
-
-            {/* Save Plan */}
-            <div className="space-y-2 pt-2 border-t border-[#E5EAE5]">
-              <label className="text-[10px] font-bold uppercase tracking-wider text-[#5F6A63]">
-                Save Plan to Browser Storage
-              </label>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={planTitle}
-                  onChange={(e) => setPlanTitle(e.target.value)}
-                  placeholder={`Plan: ${currentCity.name} (${formatINR(state.sal)})`}
-                  className="flex-1 px-3 py-1.5 bg-[#F8F9F7] border border-[#E5EAE5] rounded-xl text-xs"
-                />
-                <button
-                  type="button"
-                  onClick={handleSavePlan}
-                  className="px-3 py-1.5 rounded-xl bg-[#176B50] text-white text-xs font-semibold shrink-0"
-                >
-                  Save
-                </button>
-              </div>
-              {saveSuccessMsg && (
-                <p className="text-[11px] text-[#176B50] font-medium">{saveSuccessMsg}</p>
-              )}
-            </div>
-
-            {/* Print / PDF Export */}
-            <div className="pt-2">
-              <button
-                type="button"
-                onClick={() => window.print()}
-                className="w-full py-2.5 rounded-xl border border-[#E5EAE5] bg-[#F8F9F7] hover:bg-neutral-100 text-[#18231E] font-semibold text-xs flex items-center justify-center gap-1.5 transition-colors"
-              >
-                <Printer className="w-3.5 h-3.5 text-[#176B50]" />
-                <span>Export PDF / Print Brief</span>
-              </button>
-            </div>
-          </div>
+          <RelocationBlueprint
+            state={state}
+            chosenNeighbourhood={chosenNeighbourhood}
+            scoredNeighbourhoods={scoredNeighbourhoods}
+            onUpdateState={onUpdateState}
+            onGoStep={onGoStep}
+          />
         )}
       </div>
 
       {/* Sticky Bottom Navigation Footer Inside Panel */}
       <div className="p-4 bg-white border-t border-[#E5EAE5] flex items-center justify-between gap-3 shrink-0">
-        {state.st > 0 ? (
+        {state.st > 0 && state.st < 5 ? (
           <button
             type="button"
             onClick={() => onGoStep(state.st - 1)}
@@ -1074,7 +980,7 @@ export const PlannerPanel: React.FC<PlannerPanelProps> = ({
           <div />
         )}
 
-        {state.st < 5 ? (
+        {state.st < 4 ? (
           <button
             type="button"
             onClick={() => onGoStep(state.st + 1)}
@@ -1087,21 +993,39 @@ export const PlannerPanel: React.FC<PlannerPanelProps> = ({
                 ? 'Discover Localities'
                 : state.st === 2
                 ? 'Configure Lifestyle'
-                : state.st === 3
-                ? 'Analyze Budget'
-                : 'Generate Report'}
+                : 'Analyze Budget'}
             </span>
             <ArrowRight className="w-3.5 h-3.5" />
           </button>
-        ) : (
+        ) : state.st === 4 ? (
           <button
             type="button"
-            onClick={() => onGoStep(0)}
-            className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl text-xs font-semibold text-white bg-[#176B50] hover:bg-[#125740] shadow-xs transition-all"
+            onClick={() => onGoStep(5)}
+            className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl text-xs font-semibold text-white bg-[#176B50] hover:bg-[#125740] shadow-xs transition-all active:scale-95"
           >
-            <span>New Scenario</span>
+            <Sparkles className="w-3.5 h-3.5 text-[#C8E6A0]" />
+            <span>Generate Relocation Blueprint</span>
             <ArrowRight className="w-3.5 h-3.5" />
           </button>
+        ) : (
+          /* Step 5 Footer: Never auto-reset! Provide explicit actions */
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => onGoStep(4)}
+              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-semibold text-[#5F6A63] hover:text-[#18231E] hover:bg-neutral-100 transition-colors"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" />
+              <span>Edit Inputs</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => onGoStep(2)}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-white bg-[#176B50] hover:bg-[#125740] shadow-xs transition-all"
+            >
+              <span>Explore More Corridors</span>
+            </button>
+          </div>
         )}
       </div>
     </div>

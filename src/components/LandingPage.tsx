@@ -363,7 +363,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
       </section>
 
       {/* 2. THE PROBLEM: THE SALARY ILLUSION */}
-      <section id="problem" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 border-t border-[#E5EAE5] pt-16">
+      <section id="problem" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 border-t border-[#E5EAE5] pt-16 scroll-mt-20 sm:scroll-mt-24">
         <div className="max-w-3xl mb-12">
           <div className="text-xs font-mono font-bold uppercase tracking-wider text-[#176B50] mb-2 flex items-center gap-2">
             <span className="w-1.5 h-1.5 rounded-full bg-[#176B50]" />
@@ -442,7 +442,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
       </section>
 
       {/* 3. HOW RELOCATION INTELLIGENCE WORKS */}
-      <section id="how-it-works" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 border-t border-[#E5EAE5] pt-16">
+      <section id="how-it-works" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 border-t border-[#E5EAE5] pt-16 scroll-mt-20 sm:scroll-mt-24">
         <div className="max-w-3xl mb-12">
           <div className="text-xs font-mono font-bold uppercase tracking-wider text-[#176B50] mb-2 flex items-center gap-2">
             <span className="w-1.5 h-1.5 rounded-full bg-[#176B50]" />
@@ -521,7 +521,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
       </section>
 
       {/* 4. NEIGHBOURHOOD DISCOVERY SPOTLIGHT */}
-      <section id="neighbourhoods" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 border-t border-[#E5EAE5] pt-16">
+      <section id="neighbourhoods" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 border-t border-[#E5EAE5] pt-16 scroll-mt-20 sm:scroll-mt-24">
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
           <div>
             <div className="text-xs font-bold uppercase tracking-wider text-[#176B50] mb-2">
@@ -602,7 +602,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
       </section>
 
       {/* 5. CITY COMPARISONS: BENGALURU VS DELHI NCR */}
-      <section id="cities" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 border-t border-[#E5EAE5] pt-16">
+      <section id="cities" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 border-t border-[#E5EAE5] pt-16 scroll-mt-20 sm:scroll-mt-24">
         <div className="max-w-3xl mb-10">
           <div className="text-xs font-mono font-bold uppercase tracking-wider text-[#176B50] mb-2 flex items-center gap-2">
             <span className="w-1.5 h-1.5 rounded-full bg-[#176B50]" />
@@ -704,7 +704,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
       </section>
 
       {/* 6. OFFER EVALUATION FRAMEWORK */}
-      <section id="evaluation" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 border-t border-[#E5EAE5] pt-16">
+      <section id="evaluation" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 border-t border-[#E5EAE5] pt-16 pb-24 sm:pb-32 lg:pb-36 scroll-mt-20 sm:scroll-mt-24">
         <div className="max-w-3xl mb-12">
           <div className="text-xs font-mono font-bold uppercase tracking-wider text-[#176B50] mb-2 flex items-center gap-2">
             <span className="w-1.5 h-1.5 rounded-full bg-[#176B50]" />

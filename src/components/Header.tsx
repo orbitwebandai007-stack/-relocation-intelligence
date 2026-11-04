@@ -42,17 +42,47 @@ export const Header: React.FC<HeaderProps> = ({
     { name: 'Offer Audit', href: '#evaluation' },
   ];
 
+  const scrollToSection = (href: string) => {
+    if (href === '#' || href === '#top') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+
+    const target = document.querySelector(href);
+    if (target) {
+      const headerOffset = 80;
+      const elementPosition = target.getBoundingClientRect().top;
+      const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+      window.scrollTo({
+        top: Math.max(0, offsetPosition),
+        behavior: 'smooth',
+      });
+    }
+  };
+
+  const handleNavClick = (e: React.MouseEvent, name: string, href: string) => {
+    e.preventDefault();
+    setActiveNav(name);
+    if (!isLanding) {
+      onGoLanding();
+      setTimeout(() => {
+        scrollToSection(href);
+      }, 70);
+    } else {
+      scrollToSection(href);
+    }
+  };
+
   const handleMobileNavClick = (name: string, href: string) => {
     setActiveNav(name);
     setIsMobileMenuOpen(false);
-    if (href === '#') {
+    if (!isLanding) {
       onGoLanding();
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      setTimeout(() => {
+        scrollToSection(href);
+      }, 70);
     } else {
-      const target = document.querySelector(href);
-      if (target) {
-        target.scrollIntoView({ behavior: 'smooth' });
-      }
+      scrollToSection(href);
     }
   };
 
@@ -117,15 +147,10 @@ export const Header: React.FC<HeaderProps> = ({
                   <a
                     key={item.name}
                     href={item.href}
-                    onClick={() => {
-                      setActiveNav(item.name);
-                      if (item.href === '#') {
-                        onGoLanding();
-                      }
-                    }}
+                    onClick={(e) => handleNavClick(e, item.name, item.href)}
                     onMouseEnter={() => setHoveredNav(item.name)}
                     onMouseLeave={() => setHoveredNav(null)}
-                    className="relative px-3.5 py-1.5 rounded-full text-xs font-medium transition-colors select-none whitespace-nowrap"
+                    className="relative px-3.5 py-1.5 rounded-full text-xs font-medium transition-colors select-none whitespace-nowrap cursor-pointer"
                   >
                     {/* Active/Hover Animated Capsule Background */}
                     {isActive && (
@@ -267,31 +292,22 @@ export const Header: React.FC<HeaderProps> = ({
         <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
           {!isLanding ? (
             <>
-              {/* City quick switch */}
+              {/* Multi-city quick switch */}
               {onSelectCity && (
-                <div className="inline-flex items-center p-0.5 sm:p-1 bg-white rounded-full border border-[#E5EAE5] text-[10px] sm:text-[11px] font-semibold text-[#5F6A63] shadow-xs">
-                  <button
-                    type="button"
-                    onClick={() => onSelectCity('blr')}
-                    className={`px-2.5 sm:px-3 py-1 rounded-full transition-all ${
-                      city === 'blr'
-                        ? 'bg-[#176B50] text-white shadow-xs'
-                        : 'hover:text-[#18231E]'
-                    }`}
+                <div className="relative inline-flex items-center">
+                  <select
+                    value={city}
+                    onChange={(e) => onSelectCity(e.target.value as CityKey)}
+                    aria-label="Select Destination City"
+                    className="appearance-none bg-white hover:bg-[#F8F9F7] border border-[#E5EAE5] text-[#18231E] text-[11px] font-bold rounded-full pl-3 pr-6 py-1.5 shadow-xs focus:outline-none focus:ring-1 focus:ring-[#176B50] cursor-pointer transition-colors"
                   >
-                    BLR
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => onSelectCity('ncr')}
-                    className={`px-2.5 sm:px-3 py-1 rounded-full transition-all ${
-                      city === 'ncr'
-                        ? 'bg-[#176B50] text-white shadow-xs'
-                        : 'hover:text-[#18231E]'
-                    }`}
-                  >
-                    NCR
-                  </button>
+                    {Object.entries(CITIES).map(([key, data]) => (
+                      <option key={key} value={key}>
+                        {key.toUpperCase()} · {data.name.replace(' (NCR)', '')}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown className="w-3 h-3 text-[#5F6A63] absolute right-2 pointer-events-none" />
                 </div>
               )}
 
@@ -328,7 +344,8 @@ export const Header: React.FC<HeaderProps> = ({
               ) : (
                 <a
                   href="#problem"
-                  className="hidden sm:inline-block px-3.5 sm:px-4 py-2 rounded-full text-xs font-medium text-[#5F6A63] hover:text-[#18231E] hover:bg-white/80 transition-all"
+                  onClick={(e) => handleNavClick(e, 'The Trap', '#problem')}
+                  className="hidden sm:inline-block px-3.5 sm:px-4 py-2 rounded-full text-xs font-medium text-[#5F6A63] hover:text-[#18231E] hover:bg-white/80 transition-all cursor-pointer"
                 >
                   Benchmarks
                 </a>

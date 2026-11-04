@@ -76,7 +76,8 @@ export default function App() {
   useEffect(() => {
     const currentWp = state.wp;
     if (!currentWp) return;
-    const areas = CITIES[state.city].areas;
+    const cityData = CITIES[state.city] || CITIES.blr;
+    const areas = cityData.areas;
     let isCancelled = false;
 
     const prefetch = async () => {
@@ -145,7 +146,8 @@ export default function App() {
 
   // Quick city change handler
   const handleSelectCity = (cityKey: CityKey) => {
-    const defaultHub = CITIES[cityKey].hubs[0];
+    const selectedCity = CITIES[cityKey] || CITIES.blr;
+    const defaultHub = selectedCity.hubs[0];
     updateState({
       city: cityKey,
       wp: {
@@ -217,9 +219,15 @@ export default function App() {
             />
           </div>
 
-          {/* Floating Right Interaction Panel (Responsive mobile full width, desktop sidebar) */}
+          {/* Floating Right Interaction Panel (Expands to executive width for Relocation Blueprint) */}
           {isPanelVisible ? (
-            <div className="absolute top-2 right-2 bottom-2 left-2 sm:left-auto sm:top-3 sm:right-3 sm:bottom-3 w-auto sm:w-[420px] lg:w-[450px] z-20 rounded-2xl border border-[#E5EAE5] shadow-[0_8px_30px_rgb(0,0,0,0.08)] bg-white overflow-hidden flex flex-col transition-all duration-200 animate-in fade-in slide-in-from-right-4">
+            <div
+              className={`absolute top-2 right-2 bottom-2 left-2 sm:left-auto sm:top-3 sm:right-3 sm:bottom-3 ${
+                state.st === 5
+                  ? 'w-auto sm:w-[680px] lg:w-[840px] max-w-[95vw]'
+                  : 'w-auto sm:w-[420px] lg:w-[450px]'
+              } z-20 rounded-2xl border border-[#E5EAE5] shadow-[0_8px_30px_rgb(0,0,0,0.08)] bg-white overflow-hidden flex flex-col transition-all duration-300 animate-in fade-in slide-in-from-right-4`}
+            >
               <PlannerPanel
                 state={state}
                 scoredNeighbourhoods={scoredNeighbourhoods}

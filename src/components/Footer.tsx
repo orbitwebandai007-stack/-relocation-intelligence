@@ -223,13 +223,13 @@ export const Footer: React.FC<FooterProps> = ({ onStartPlanning }) => {
         </div>
       </div>
 
-      {/* GIGANTIC BOTTOM WATERMARK TYPOGRAPHY (Matching PadiSave in Reference Image) */}
-      <div className="relative w-full overflow-hidden select-none pointer-events-none mt-2 sm:mt-4">
+      {/* GIGANTIC BOTTOM WATERMARK TYPOGRAPHY (Centered on all devices) */}
+      <div className="relative w-full overflow-hidden select-none pointer-events-none mt-4 sm:mt-6 pb-2 sm:pb-3 flex justify-center items-center">
         {/* Subtle background glow behind letters */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/25 via-transparent to-transparent pointer-events-none" />
 
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-[17vw] lg:text-[180px] xl:text-[215px] font-heading font-black tracking-tighter leading-[0.78] text-[#1E5239]/70 text-left -ml-1 sm:-ml-2 truncate max-w-full select-none">
+        <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-center">
+          <div className="text-[15vw] sm:text-[16vw] lg:text-[180px] xl:text-[220px] font-heading font-black tracking-tighter leading-[0.78] text-[#1E5239]/70 text-center mx-auto select-none">
             Worthwhile
           </div>
         </div>
