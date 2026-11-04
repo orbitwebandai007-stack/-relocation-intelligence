@@ -422,57 +422,54 @@ export const MapComponent: React.FC<MapComponentProps> = ({
 
         // Open popup for selected neighbourhood
         if (isSelected) {
-          const fitLabel =
-            q.g === 0
-              ? '<span class="text-xs px-2 py-0.5 rounded-full bg-[#E8F4EF] text-[#176B50] font-bold">Best Fit</span>'
-              : q.g === 1
-              ? '<span class="text-xs px-2 py-0.5 rounded-full bg-amber-100 text-[#B45309] font-bold">Consider</span>'
-              : '<span class="text-xs px-2 py-0.5 rounded-full bg-red-100 text-[#BE123C] font-bold">Stretch</span>';
+          const badgeColorMap: Record<string, string> = {
+            'BEST FIT': 'bg-[#E8F4EF] text-[#176B50]',
+            'BEST SAVINGS': 'bg-[#E8F4EF] text-[#176B50]',
+            'LOWEST RENT': 'bg-blue-50 text-blue-700',
+            'SHORTEST COMMUTE': 'bg-blue-50 text-blue-700',
+            'GOOD ALTERNATIVE': 'bg-neutral-100 text-neutral-700',
+            'OVER BUDGET': 'bg-rose-100 text-rose-700',
+            'LONG COMMUTE': 'bg-amber-100 text-amber-800',
+          };
+          const badgeClass = badgeColorMap[q.badge] || 'bg-neutral-100 text-neutral-700';
 
-          const hasRealRoute = activeRoute
-            ? !activeRoute.isFallback && activeRoute.distanceKm !== null
-            : q.roadKm !== null && q.roadKm !== undefined;
-
-          const displayDistance = hasRealRoute
-            ? activeRoute?.distanceKm !== null && activeRoute?.distanceKm !== undefined
-              ? `${activeRoute.distanceKm} km road`
-              : `${q.roadKm} km road`
-            : 'Route unavailable';
-
-          const displayDuration = hasRealRoute
-            ? activeRoute?.durationMinutes !== null && activeRoute?.durationMinutes !== undefined
-              ? `~${activeRoute.durationMinutes} min driving`
-              : `~${q.drivingMin} min driving`
-            : 'Route unavailable';
+          const roadKmDisplay = q.roadKm !== null && q.roadKm !== undefined ? `${q.roadKm} km road` : 'Modeled road';
+          const straightKmDisplay = `${q.straightLineKm} km straight-line`;
+          const peakMinDisplay = q.peakMin !== null && q.peakMin !== undefined ? `~${q.peakMin} min peak` : `~${q.drivingMin} min`;
+          const baselineMinDisplay = q.baselineMin !== null && q.baselineMin !== undefined ? `~${q.baselineMin} min off-peak` : '';
 
           const popupHtml = `
-            <div class="p-3.5 text-[#18231E] font-sans max-w-[260px]">
+            <div class="p-3 text-[#18231E] font-sans max-w-[270px]">
               <div class="flex items-center justify-between gap-2 mb-1.5">
-                <h4 class="font-bold text-sm text-[#18231E] leading-tight">${
-                  q.a[0]
-                }</h4>
-                ${fitLabel}
+                <h4 class="font-bold text-sm text-[#18231E] leading-tight">${q.a[0]}</h4>
+                <span class="text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${badgeClass}">
+                  ${q.badge}
+                </span>
               </div>
               <div class="text-xs text-[#5F6A63] space-y-1 mb-2">
                 <div class="flex justify-between">
                   <span>${PROPERTIES[propType][0]} Rent:</span>
-                  <span class="font-bold font-mono text-[#18231E]">${formatINR(
-                    q.x.e.rent
-                  )}/mo</span>
+                  <span class="font-bold font-mono text-[#18231E]">${formatINR(q.x.e.rent)}/mo</span>
                 </div>
                 <div class="flex justify-between">
-                  <span>Road distance:</span>
-                  <span class="font-bold font-mono text-[#18231E]">${displayDistance}</span>
+                  <span>Distance:</span>
+                  <span class="font-bold font-mono text-[#18231E]">${roadKmDisplay} <span class="text-[10px] font-normal text-[#5F6A63]">(${straightKmDisplay})</span></span>
                 </div>
                 <div class="flex justify-between">
-                  <span>Driving time:</span>
-                  <span class="font-bold font-mono text-[#176B50]">${displayDuration}</span>
+                  <span>Estimated Commute:</span>
+                  <span class="font-bold font-mono text-[#176B50]">${peakMinDisplay} ${baselineMinDisplay ? `<span class="text-[10px] font-normal text-[#5F6A63]">(${baselineMinDisplay})</span>` : ''}</span>
+                </div>
+                <div class="flex justify-between text-[11px] pt-1 border-t border-[#E5EAE5]/60">
+                  <span class="text-[#5F6A63]">Upfront Deposit (Refundable):</span>
+                  <span class="font-mono font-semibold text-[#18231E]">${formatINR(q.depositRequired)}</span>
                 </div>
               </div>
-              <div class="pt-2 border-t border-[#E5EAE5] text-[11px] text-[#5F6A63]">
-                Net Bankable Surplus: <strong class="font-mono text-[#176B50]">${formatINR(
-                  q.x.sav
-                )}/mo</strong>
+              <div class="pt-1.5 border-t border-[#E5EAE5] text-[11px] text-[#5F6A63] flex justify-between">
+                <span>Monthly Disposable Surplus:</span>
+                <strong class="font-mono text-[#176B50]">${formatINR(q.monthlySurplus)}/mo</strong>
+              </div>
+              <div class="mt-1 text-[9px] text-[#5F6A63] italic">
+                *Peak-hour estimate; live sensor feed disconnected.
               </div>
             </div>
           `;
@@ -615,44 +612,49 @@ export const MapComponent: React.FC<MapComponentProps> = ({
                 <Car className="w-3 h-3 text-[#5F6A63]" /> Road Distance
               </div>
               <div className="text-sm font-bold font-mono text-[#18231E] mt-0.5">
-                {activeRoute && !activeRoute.isFallback && activeRoute.distanceKm !== null
-                  ? `${activeRoute.distanceKm} km`
-                  : selectedNeighbourhood.roadKm !== null && selectedNeighbourhood.roadKm !== undefined
+                {selectedNeighbourhood.roadKm !== null && selectedNeighbourhood.roadKm !== undefined
                   ? `${selectedNeighbourhood.roadKm} km`
-                  : 'Route unavailable'}
+                  : 'Modeled'}
+              </div>
+              <div className="text-[10px] font-mono text-[#5F6A63]">
+                {selectedNeighbourhood.straightLineKm} km air
               </div>
             </div>
 
             <div>
               <div className="text-[10px] text-[#5F6A63] font-semibold uppercase tracking-wider flex items-center gap-1">
-                <Clock className="w-3 h-3 text-[#176B50]" /> Driving Time
+                <Clock className="w-3 h-3 text-[#176B50]" /> Peak Commute
               </div>
               <div className="text-sm font-bold font-mono text-[#176B50] mt-0.5">
-                {activeRoute && !activeRoute.isFallback && activeRoute.durationMinutes !== null
-                  ? `${activeRoute.durationMinutes} min`
-                  : selectedNeighbourhood.drivingMin !== null && selectedNeighbourhood.drivingMin !== undefined
-                  ? `${selectedNeighbourhood.drivingMin} min`
-                  : 'Route unavailable'}
+                {selectedNeighbourhood.peakMin !== null && selectedNeighbourhood.peakMin !== undefined
+                  ? `~${selectedNeighbourhood.peakMin} min`
+                  : `~${selectedNeighbourhood.drivingMin} min`}
+              </div>
+              <div className="text-[10px] font-mono text-[#5F6A63]">
+                {selectedNeighbourhood.baselineMin ? `~${selectedNeighbourhood.baselineMin} min off-peak` : 'Standard road'}
               </div>
             </div>
+          </div>
+          <div className="text-[9px] text-[#5F6A63] pt-1 border-t border-[#E5EAE5]/40 italic">
+            *Modeled peak estimate; live traffic sensors disconnected.
           </div>
         </div>
       )}
 
       {/* Bottom Map Legend */}
-      <div className="absolute bottom-3 left-3 z-10 flex flex-wrap items-center gap-2.5 px-3 py-1.5 bg-white/95 backdrop-blur-sm border border-[#E5EAE5] rounded-xl text-[11px] text-[#5F6A63] shadow-xs">
-        <span className="font-semibold text-[#18231E]">Lamar Badges:</span>
-        <span className="inline-flex items-center gap-1 font-medium">
-          <span className="w-2.5 h-2.5 rounded-full bg-[#176B50]"></span> Best Fit
+      <div className="absolute bottom-3 left-3 z-10 flex flex-wrap items-center gap-2 px-3 py-1.5 bg-white/95 backdrop-blur-sm border border-[#E5EAE5] rounded-xl text-[11px] text-[#5F6A63] shadow-xs">
+        <span className="font-semibold text-[#18231E]">Badges:</span>
+        <span className="inline-flex items-center gap-1 font-medium text-[#176B50]">
+          <span className="w-2 h-2 rounded-full bg-[#176B50]"></span> Best Fit / Savings
         </span>
-        <span className="inline-flex items-center gap-1 font-medium">
-          <span className="w-2.5 h-2.5 rounded-full bg-[#B45309]"></span> Consider
+        <span className="inline-flex items-center gap-1 font-medium text-blue-700">
+          <span className="w-2 h-2 rounded-full bg-blue-600"></span> Commute / Rent
         </span>
-        <span className="inline-flex items-center gap-1 font-medium">
-          <span className="w-2.5 h-2.5 rounded-full bg-[#BE123C]"></span> Stretch
+        <span className="inline-flex items-center gap-1 font-medium text-neutral-600">
+          <span className="w-2 h-2 rounded-full bg-neutral-400"></span> Alternative
         </span>
-        <span className="inline-flex items-center gap-1 pl-1 border-l border-[#E5EAE5] font-medium">
-          <span className="w-2.5 h-2.5 rotate-45 bg-[#37526D] inline-block"></span> Metro
+        <span className="inline-flex items-center gap-1 pl-1 border-l border-[#E5EAE5] font-medium text-[#37526D]">
+          <span className="w-2 h-2 rotate-45 bg-[#37526D] inline-block"></span> Metro
         </span>
       </div>
 

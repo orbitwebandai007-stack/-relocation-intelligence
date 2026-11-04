@@ -83,6 +83,7 @@ export const PlannerPanel: React.FC<PlannerPanelProps> = ({
 
   // Local state for Current Baseline toggle in Step 1
   const [showBaselineDetails, setShowBaselineDetails] = useState(false);
+  const [showFactors, setShowFactors] = useState(false);
 
   // Calculate live financial figures
   const currentEst = estimateExpenses(
@@ -506,6 +507,43 @@ export const PlannerPanel: React.FC<PlannerPanelProps> = ({
                 className="w-full h-2 bg-neutral-200 rounded-lg cursor-pointer"
               />
             </div>
+
+            {/* Liquid Savings Readiness (Optional) */}
+            <div className="space-y-2 pt-2 border-t border-[#E5EAE5]">
+              <div className="flex items-center justify-between">
+                <div>
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-[#5F6A63]">
+                    Available Relocation Savings (Optional)
+                  </label>
+                  <p className="text-[10px] text-[#5F6A63]">
+                    Liquid capital you currently have ready for moving day.
+                  </p>
+                </div>
+                {state.availableSavings ? (
+                  <span className="font-mono font-bold text-xs text-[#176B50]">
+                    {formatINR(state.availableSavings)}
+                  </span>
+                ) : null}
+              </div>
+              <div className="relative">
+                <span className="absolute left-3.5 top-1/2 -translate-y-1/2 font-bold text-[#5F6A63]">
+                  ₹
+                </span>
+                <input
+                  type="number"
+                  min="0"
+                  step="10000"
+                  placeholder="e.g. 250000"
+                  value={state.availableSavings || ''}
+                  onChange={(e) =>
+                    onUpdateState({
+                      availableSavings: Math.max(0, Number(e.target.value)),
+                    })
+                  }
+                  className="w-full pl-8 pr-3 py-2 bg-[#F8F9F7] border border-[#E5EAE5] rounded-xl text-xs font-bold font-mono text-[#18231E] focus:outline-none focus:ring-2 focus:ring-[#176B50]/20 focus:border-[#176B50]"
+                />
+              </div>
+            </div>
           </div>
         )}
 
@@ -582,10 +620,27 @@ export const PlannerPanel: React.FC<PlannerPanelProps> = ({
               <div className="p-4 rounded-2xl border border-[#176B50] bg-white ring-2 ring-[#176B50]/15 shadow-sm space-y-3">
                 <div className="flex items-start justify-between gap-2">
                   <div>
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-[#176B50]">
-                      Primary Selection
-                    </span>
-                    <h3 className="text-base font-bold text-[#18231E]">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-[#176B50]">
+                        Primary Selection
+                      </span>
+                      <span
+                        className={`px-2 py-0.5 rounded-full text-[9px] font-mono font-bold uppercase ${
+                          chosenNeighbourhood.badgeTone === 'emerald'
+                            ? 'bg-[#E8F4EF] text-[#176B50]'
+                            : chosenNeighbourhood.badgeTone === 'blue'
+                            ? 'bg-blue-50 text-blue-700'
+                            : chosenNeighbourhood.badgeTone === 'rose'
+                            ? 'bg-rose-50 text-[#BE123C]'
+                            : chosenNeighbourhood.badgeTone === 'amber'
+                            ? 'bg-amber-50 text-amber-800'
+                            : 'bg-neutral-100 text-neutral-700'
+                        }`}
+                      >
+                        {chosenNeighbourhood.badge}
+                      </span>
+                    </div>
+                    <h3 className="text-base font-bold text-[#18231E] mt-0.5">
                       {chosenNeighbourhood.a[0]}
                     </h3>
                   </div>
@@ -609,27 +664,67 @@ export const PlannerPanel: React.FC<PlannerPanelProps> = ({
                 </div>
 
                 <div className="grid grid-cols-2 gap-2 text-xs pt-1">
-                  <div className="p-2 rounded-xl bg-[#F8F9F7] border border-[#E5EAE5]">
+                  <div className="p-2.5 rounded-xl bg-[#F8F9F7] border border-[#E5EAE5]">
                     <span className="text-[10px] text-[#5F6A63] uppercase">
                       Rent ({PROPERTIES[state.prop]?.[0]}):
                     </span>
                     <div className="font-mono font-bold text-[#18231E]">
                       {formatINR(chosenNeighbourhood.x.e.rent)}/mo
                     </div>
+                    <span className="text-[10px] text-[#5F6A63]">
+                      Deposit: {formatINR(chosenNeighbourhood.depositRequired)} (Refundable)
+                    </span>
                   </div>
 
-                  <div className="p-2 rounded-xl bg-[#F8F9F7] border border-[#E5EAE5]">
+                  <div className="p-2.5 rounded-xl bg-[#F8F9F7] border border-[#E5EAE5]">
                     <span className="text-[10px] text-[#5F6A63] uppercase">
-                      Road Commute:
+                      Peak Commute:
                     </span>
                     <div className="font-mono font-bold text-[#176B50]">
-                      {chosenNeighbourhood.drivingMin ?? chosenNeighbourhood.x.min} min ({chosenNeighbourhood.roadKm ?? chosenNeighbourhood.x.rd} km)
+                      ~{chosenNeighbourhood.peakMin ?? chosenNeighbourhood.drivingMin} min
                     </div>
+                    <span className="text-[10px] text-[#5F6A63]">
+                      {chosenNeighbourhood.roadKm} km road ({chosenNeighbourhood.straightLineKm} km air)
+                    </span>
                   </div>
                 </div>
 
-                <div className="text-[11px] text-[#5F6A63] italic">
-                  "{chosenNeighbourhood.why}"
+                <div className="flex items-center justify-between text-xs pt-1">
+                  <span className="text-[#5F6A63]">Monthly Disposable Surplus:</span>
+                  <span className="font-mono font-bold text-[#176B50]">
+                    {formatINR(chosenNeighbourhood.monthlySurplus)}/mo
+                  </span>
+                </div>
+
+                {/* Expandable Why This Recommendation */}
+                <div className="pt-2 border-t border-[#E5EAE5]">
+                  <button
+                    type="button"
+                    onClick={() => setShowFactors(!showFactors)}
+                    className="w-full flex items-center justify-between text-[11px] font-semibold text-[#176B50] hover:text-[#125740]"
+                  >
+                    <span>Why this recommendation?</span>
+                    {showFactors ? (
+                      <ChevronUp className="w-3.5 h-3.5" />
+                    ) : (
+                      <ChevronDown className="w-3.5 h-3.5" />
+                    )}
+                  </button>
+
+                  {showFactors && (
+                    <div className="mt-2 p-2.5 rounded-xl bg-[#F8F9F7] border border-[#E5EAE5] text-[11px] space-y-1.5 text-[#5F6A63]">
+                      <p className="font-medium text-[#18231E]">
+                        {chosenNeighbourhood.whyExplanation}
+                      </p>
+                      <div className="space-y-1 pt-1 border-t border-[#E5EAE5]/60 text-[10px]">
+                        <div>• <strong>Affordability:</strong> {chosenNeighbourhood.factors.rentRatioText}</div>
+                        <div>• <strong>Commute:</strong> {chosenNeighbourhood.factors.commuteText}</div>
+                        <div>• <strong>Net Surplus:</strong> {chosenNeighbourhood.factors.surplusText}</div>
+                        <div>• <strong>Capital Lock:</strong> {chosenNeighbourhood.factors.depositText}</div>
+                        <div>• <strong>Source:</strong> {chosenNeighbourhood.routeSource} (Confidence: {chosenNeighbourhood.routeConfidence})</div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -660,10 +755,15 @@ export const PlannerPanel: React.FC<PlannerPanelProps> = ({
                         <span className="w-5 h-5 rounded-full bg-white border border-[#E5EAE5] text-[10px] font-mono flex items-center justify-center shrink-0">
                           {idx + 1}
                         </span>
-                        <span className="truncate text-[#18231E]">{item.a[0]}</span>
+                        <div className="truncate">
+                          <span className="text-[#18231E] block truncate">{item.a[0]}</span>
+                          <span className="text-[9px] font-mono text-[#5F6A63] block">
+                            {item.badge}
+                          </span>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2 shrink-0 font-mono text-[11px]">
-                        <span>{item.drivingMin ?? item.x.min}m</span>
+                      <div className="flex items-center gap-2 shrink-0 font-mono text-[11px] text-right">
+                        <span>~{item.peakMin ?? item.drivingMin}m</span>
                         <span className="font-bold text-[#18231E]">
                           ₹{Math.round(item.x.e.rent / 1000)}k
                         </span>

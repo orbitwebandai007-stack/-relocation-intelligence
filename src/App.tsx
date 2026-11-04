@@ -144,10 +144,14 @@ export default function App() {
   });
   const [isPanelVisible, setIsPanelVisible] = useState(true);
 
-  // Quick city change handler
+  // Quick city change handler with full state and route integrity
   const handleSelectCity = (cityKey: CityKey) => {
     const selectedCity = CITIES[cityKey] || CITIES.blr;
     const defaultHub = selectedCity.hubs[0];
+    
+    // Invalidate outdated routes from previous city immediately
+    setRouteMap(new Map());
+
     updateState({
       city: cityKey,
       wp: {
@@ -155,8 +159,15 @@ export default function App() {
         lat: defaultHub[1],
         lng: defaultHub[2],
       },
-      sel: [],
+      sel: [], // Invalidate previous city neighbourhood selection
       f: { ...state.f, q: '' },
+      // Reset city-specific overrides so new city's micro-market defaults take effect
+      depositMonthsOverride: undefined,
+      brokerageOverride: undefined,
+      moversOverride: undefined,
+      setupOverride: undefined,
+      utilityDepositOverride: undefined,
+      travelTransitOverride: undefined,
     });
   };
 

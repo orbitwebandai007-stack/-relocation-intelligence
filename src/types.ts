@@ -38,6 +38,21 @@ export type SortPriority =
   | 'savings'
   | 'distance';
 
+export type DataConfidence =
+  | 'verified'
+  | 'market_benchmark'
+  | 'modelled'
+  | 'user_override';
+
+export type LocalityBadge =
+  | 'BEST FIT'
+  | 'BEST SAVINGS'
+  | 'LOWEST RENT'
+  | 'SHORTEST COMMUTE'
+  | 'GOOD ALTERNATIVE'
+  | 'OVER BUDGET'
+  | 'LONG COMMUTE';
+
 export interface WorkplaceHub {
   name: string;
   lat: number;
@@ -57,6 +72,8 @@ export interface CityData {
   standardBrokerageMonths: number;
   acMonthlyModifier: number;
   description: string;
+  sourceName: string;
+  lastUpdated: string;
   hubs: [string, number, number][];
   areas: AreaData[];
 }
@@ -100,29 +117,58 @@ export interface ScoredNeighbourhood {
   a: AreaData;
   x: EstimationResult;
   route?: RouteInfo | null;
+  straightLineKm: number;
   roadKm?: number | null;
+  baselineMin?: number | null;
+  peakMin?: number | null;
   drivingMin?: number | null;
   hasValidRoute: boolean;
-  g: 0 | 1 | 2; // 0 = Best fit, 1 = Worth considering, 2 = Stretch
+  routeSource: string;
+  routeConfidence: 'high' | 'modeled';
+  badge: LocalityBadge;
+  badgeTone: 'emerald' | 'blue' | 'amber' | 'rose' | 'neutral';
+  g: 0 | 1 | 2; // legacy compatibility: 0 = Best fit, 1 = Alternative, 2 = Stretch
   sc: number;
-  scoreBreakdown: ScoreBreakdown;
+  rentToIncomeRatio: number;
+  monthlySurplus: number;
+  depositRequired: number;
   why: string;
+  whyExplanation: string;
+  factors: {
+    rentRatioText: string;
+    commuteText: string;
+    surplusText: string;
+    depositText: string;
+  };
+  scoreBreakdown: ScoreBreakdown;
   vis: boolean;
 }
 
 export interface MovingCostBreakdown {
+  // Category A: Recoverable Capital Locked
   securityDeposit: number;
   depositMonths: number;
+  refundableUtilityDeposit: number;
+  totalRecoverableCapital: number;
+
+  // Category B: Non-Recoverable Moving Expenses (Sunk Economic Cost)
   brokerageFee: number;
   brokerageMonths: number;
   moversPackers: number;
+  travelAndTransit: number;
   initialSetupReserve: number;
-  totalMovingOutlay: number;
+  totalNonRecoverableCost: number;
+
+  // Day-1 Total Liquidity Required (A + B)
+  totalDay1CashRequired: number;
+  totalMovingOutlay: number; // alias for totalDay1CashRequired for backwards compatibility
+
   assumptions: {
     depositRule: string;
     brokerageRule: string;
     movingDistanceTier: string;
     setupRule: string;
+    recoverableNote: string;
   };
 }
 
@@ -150,13 +196,24 @@ export interface RelocationVerdict {
     liquidity: VerdictPillar;
     commute: VerdictPillar;
   };
-  paybackMonths: number;
+  // Distinguish Economic Cost Recovery vs Liquidity Recovery
+  economicPaybackMonths: number | null;
+  liquidityPaybackMonths: number | null;
+  paybackStatusText: string;
+  paybackMonths: number; // alias for economicPaybackMonths for compatibility
   netAnnualRelocationGain: number;
   currentSavings: number;
   destSavings: number;
   savingsDeltaMonthly: number;
   currentSavingsRate: number;
   destSavingsRate: number;
+
+  // Financial Safety & Emergency Reserves
+  essentialMonthlyExpenses: number;
+  emergencyFund3Months: number;
+  emergencyFund6Months: number;
+  safeRelocationRunwayRequired: number;
+  readinessGap: number;
 }
 
 export interface FilterState {
@@ -180,6 +237,20 @@ export interface SavedPlan {
   timestamp: string;
   title: string;
   state: RelocationState;
+  // Snapshot metrics for direct multi-scenario comparison
+  snapshot?: {
+    cityName: string;
+    workplaceName: string;
+    neighbourhoodName: string;
+    inHandSalary: number;
+    monthlyExpenses: number;
+    monthlySavings: number;
+    savingsRate: number;
+    day1CashRequired: number;
+    nonRecoverableCost: number;
+    peakCommuteMin: number;
+    wealthProjection3Yr: number;
+  };
 }
 
 export interface RelocationState {
@@ -203,11 +274,21 @@ export interface RelocationState {
   maxc: number;
   sel: number[]; // shortlisted neighbourhood indices
   ov: Partial<Record<ExpenseCategory, number>>;
+  
   // Transparent moving cost overrides
   depositMonthsOverride?: number;
   brokerageOverride?: number;
   moversOverride?: number;
   setupOverride?: number;
+  utilityDepositOverride?: number;
+  travelTransitOverride?: number;
+
+  // Financial Safety & Readiness
+  availableSavings?: number; // User-provided liquid savings for relocation
+
+  // Long-Term Wealth Projection
+  investmentReturnRate?: number; // 6, 9, 12, or custom
+
   f: FilterState;
   from: string; // Origin city
   weights?: ScoringWeights;

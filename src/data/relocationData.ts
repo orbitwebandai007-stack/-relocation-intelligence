@@ -7,6 +7,7 @@ import {
   ExpenseCategory,
   FoodHabit,
   LifestyleTier,
+  LocalityBadge,
   MovingCostBreakdown,
   PropertyType,
   RelocationState,
@@ -20,7 +21,7 @@ import {
   VerdictPillar,
   WorkplaceHub,
 } from '../types';
-import { RouteInfo } from '../services/routingService';
+import { RouteInfo, computeStraightLineKm } from '../services/routingService';
 
 export const DEFAULT_SCORING_WEIGHTS: ScoringWeights = {
   affordability: 0.40,
@@ -61,6 +62,8 @@ export const CITIES: Record<string, CityData> = {
     standardBrokerageMonths: 1,
     acMonthlyModifier: 1500,
     description: 'India\'s tech capital with premier engineering clusters, moderate climate, but notable 6–10 month upfront deposit customs and corridor traffic.',
+    sourceName: 'MagicBricks & 99acres corridor indexing + RBI rental inflation calibration',
+    lastUpdated: 'Q1 2026',
     hubs: [
       ['Outer Ring Road · Bellandur', 12.9387, 77.722],
       ['Whitefield · ITPL', 12.9698, 77.75],
@@ -96,6 +99,8 @@ export const CITIES: Record<string, CityData> = {
     standardBrokerageMonths: 1,
     acMonthlyModifier: 6500,
     description: 'Fast-paced corporate and financial hub with 16-lane expressways, extensive Metro reach, flexible 2-month deposits, but significant summer AC electricity spikes.',
+    sourceName: 'MagicBricks & 99acres corridor indexing + RBI rental inflation calibration',
+    lastUpdated: 'Q1 2026',
     hubs: [
       ['Cyber City · Gurugram', 28.495, 77.089],
       ['Golf Course Road · Gurugram', 28.443, 77.101],
@@ -131,6 +136,8 @@ export const CITIES: Record<string, CityData> = {
     standardBrokerageMonths: 1,
     acMonthlyModifier: 3500,
     description: 'Financial capital with unmatched coastal energy, local train lifelines, but India\'s highest square-foot residential rentals and compact space standards.',
+    sourceName: 'MagicBricks & 99acres corridor indexing + RBI rental inflation calibration',
+    lastUpdated: 'Q1 2026',
     hubs: [
       ['Bandra-Kurla Complex (BKC)', 19.0665, 72.8688],
       ['Lower Parel / Worli', 18.995, 72.825],
@@ -160,6 +167,8 @@ export const CITIES: Record<string, CityData> = {
     standardBrokerageMonths: 1,
     acMonthlyModifier: 1800,
     description: 'Vibrant education and software hub with pleasant plateau weather, reasonable rental deposits, and self-contained IT townships in East and West corridors.',
+    sourceName: 'MagicBricks & 99acres corridor indexing + RBI rental inflation calibration',
+    lastUpdated: 'Q1 2026',
     hubs: [
       ['Hinjewadi Phase 1 / Quadron', 18.5913, 73.7389],
       ['Kharadi · EON IT Park', 18.552, 73.945],
@@ -188,6 +197,8 @@ export const CITIES: Record<string, CityData> = {
     standardBrokerageMonths: 0.5,
     acMonthlyModifier: 3000,
     description: 'Rapidly growing tech powerhouse with wide arterial ring roads, high-rise gated communities, generous living space, and landlord-friendly 2-month deposits.',
+    sourceName: 'MagicBricks & 99acres corridor indexing + RBI rental inflation calibration',
+    lastUpdated: 'Q1 2026',
     hubs: [
       ['HITEC City · Cyber Towers', 17.4475, 78.3762],
       ['Gachibowli · Wipro Circle', 17.4401, 78.3489],
@@ -216,6 +227,8 @@ export const CITIES: Record<string, CityData> = {
     standardBrokerageMonths: 1,
     acMonthlyModifier: 4000,
     description: 'Major SaaS, automotive, and deep tech capital along the scenic OMR corridor with strong cultural roots, metro reach, and moderate living expenses.',
+    sourceName: 'MagicBricks & 99acres corridor indexing + RBI rental inflation calibration',
+    lastUpdated: 'Q1 2026',
     hubs: [
       ['OMR · Tidel Park', 12.9897, 80.2483],
       ['Sholinganallur Junction', 12.901, 80.227],
@@ -503,7 +516,10 @@ export const estimateExpenses = (
 
 /**
  * Transparent moving and setup cost estimation with explicit micro-market assumptions
- * and support for custom user overrides.
+ * Separates costs into:
+ * A. Recoverable Capital (Security deposit, refundable utility bonds)
+ * B. Non-Recoverable Moving Expenses (Brokerage, movers & packers, travel, setup fees)
+ * C. Day-1 Total Cash Required (A + B)
  */
 export function calculateMovingCosts(
   fromCityName: string,
@@ -514,21 +530,30 @@ export function calculateMovingCosts(
 ): MovingCostBreakdown {
   const cityData = CITIES[destCityKey] || CITIES.blr;
 
-  // 1. Security Deposit: customizable months of rent based on local customs
+  // 1. Security Deposit: customizable months of rent based on local customs (Recoverable)
   const depositMonths =
     state.depositMonthsOverride !== undefined
       ? state.depositMonthsOverride
       : cityData.defaultDepositMonths;
   const securityDeposit = Math.round(rentMonthly * depositMonths);
 
-  // 2. Brokerage Fee: standard 1 month rent or direct owner (0)
+  // 2. Refundable Utility Deposit (Electricity meter, gas connection, society caution bond)
+  const refundableUtilityDeposit =
+    state.utilityDepositOverride !== undefined
+      ? state.utilityDepositOverride
+      : propType.startsWith('pg')
+      ? 2000
+      : 5000;
+  const totalRecoverableCapital = securityDeposit + refundableUtilityDeposit;
+
+  // 3. Brokerage Fee: standard 1 month rent or direct owner (0) (Non-Recoverable)
   const brokerageMonths =
     state.brokerageOverride !== undefined
       ? state.brokerageOverride
       : cityData.standardBrokerageMonths;
   const brokerageFee = Math.round(rentMonthly * brokerageMonths);
 
-  // 3. Inter-City Movers & Packers
+  // 4. Inter-City Movers & Packers (Non-Recoverable)
   let defaultMovers = 22000;
   const isSameCity =
     fromCityName.toLowerCase().trim() === cityData.name.toLowerCase().trim();
@@ -536,14 +561,13 @@ export function calculateMovingCosts(
   if (isSameCity) {
     defaultMovers = 9000;
   } else {
-    // Distance tier based on common city pairs
     const lowerFrom = fromCityName.toLowerCase().trim();
     if (lowerFrom.includes('pune') && destCityKey === 'blr') defaultMovers = 24000;
     else if (lowerFrom.includes('mumbai') && destCityKey === 'blr') defaultMovers = 28000;
     else if (lowerFrom.includes('delhi') && destCityKey === 'blr') defaultMovers = 34000;
     else if (lowerFrom.includes('hyderabad') && destCityKey === 'blr') defaultMovers = 20000;
     else if (lowerFrom.includes('chennai') && destCityKey === 'blr') defaultMovers = 16000;
-    else defaultMovers = 25000;
+    else defaultMovers = 26000;
   }
 
   // Adjust moving cost by accommodation scale
@@ -555,40 +579,59 @@ export function calculateMovingCosts(
       ? state.moversOverride
       : Math.round(defaultMovers * scaleMultiplier);
 
-  // 4. Initial Setup Reserve (Wi-Fi installation, grocery buffer, kitchen stocking)
-  const defaultSetup = propType.startsWith('pg') ? 8000 : 25000;
+  // 5. Travel & Transit Expenses (Relocation flight/train tickets, cabs) (Non-Recoverable)
+  const defaultTravel = isSameCity ? 2500 : 9000;
+  const travelAndTransit =
+    state.travelTransitOverride !== undefined
+      ? state.travelTransitOverride
+      : defaultTravel;
+
+  // 6. Initial Setup Reserve (Wi-Fi installation, society move-in fee, basic kitchen restocking)
+  const defaultSetup = propType.startsWith('pg') ? 7000 : 20000;
   const initialSetupReserve =
     state.setupOverride !== undefined ? state.setupOverride : defaultSetup;
 
-  const totalMovingOutlay =
-    securityDeposit + brokerageFee + moversPackers + initialSetupReserve;
+  const totalNonRecoverableCost =
+    brokerageFee + moversPackers + travelAndTransit + initialSetupReserve;
+
+  // Total Day-1 Liquidity Required (A + B)
+  const totalDay1CashRequired = totalRecoverableCapital + totalNonRecoverableCost;
 
   return {
     securityDeposit,
     depositMonths,
+    refundableUtilityDeposit,
+    totalRecoverableCapital,
     brokerageFee,
     brokerageMonths,
     moversPackers,
+    travelAndTransit,
     initialSetupReserve,
-    totalMovingOutlay,
+    totalNonRecoverableCost,
+    totalDay1CashRequired,
+    totalMovingOutlay: totalDay1CashRequired,
     assumptions: {
-      depositRule: `${depositMonths} months rent (${cityData.depositMonthsRange[0]}–${cityData.depositMonthsRange[1]} mo typical for ${cityData.name})`,
+      depositRule: `${depositMonths} months rent (${cityData.depositMonthsRange[0]}–${cityData.depositMonthsRange[1]} mo customary in ${cityData.name})`,
       brokerageRule:
         brokerageMonths === 0
           ? '0 Brokerage (Direct owner / NoBroker)'
-          : `${brokerageMonths} month rent (Standard local agent fee)`,
+          : `${brokerageMonths} month rent (Standard local agent commission)`,
       movingDistanceTier: isSameCity
         ? 'Intra-city relocation vehicle & labor'
         : `Inter-city transport from ${fromCityName || 'Origin'} to ${cityData.name}`,
-      setupRule: 'Wi-Fi security, domestic restocking & society move-in fee',
+      setupRule: 'Society move-in fee, fiber activation & domestic starter restocking',
+      recoverableNote: 'Security deposit and utility meter deposits are refundable upon lease exit; not a sunk economic cost.',
     },
   };
 }
 
 /**
- * Intelligent Relocation Verdict: Multidimensional evaluation across
- * 1. Surplus Growth, 2. Savings Rate Quality, 3. Liquidity/Payback Risk, 4. Commute Velocity.
- * No arbitrary scoreboards — pure grounded financial and lifestyle intelligence.
+ * Intelligent Relocation Verdict: Multidimensional evaluation across:
+ * 1. Surplus Growth (Disposable income delta)
+ * 2. Savings Rate Quality (vs 20% / 35% benchmarks)
+ * 3. Capital Payback Feasibility (Dual: Economic Sunk Payback vs Day-1 Liquidity Recovery)
+ * 4. Commute Reality (Peak hour road drive)
+ * 5. Emergency Reserve & Relocation Runway Readiness
  */
 export function evaluateRelocationVerdict(
   destCity: CityKey,
@@ -611,13 +654,45 @@ export function evaluateRelocationVerdict(
   const savingsDeltaMonthly = destSavings - currentSavings;
   const netAnnualRelocationGain = savingsDeltaMonthly * 12;
 
-  // 3. Payback Period in months
-  const paybackMonths =
-    savingsDeltaMonthly > 0
-      ? +(movingCosts.totalMovingOutlay / savingsDeltaMonthly).toFixed(1)
-      : 999;
+  // 3. Dual Payback Period Calculations:
+  // - Economic Cost Recovery: Non-recoverable relocation expenses / additional monthly savings
+  // - Liquidity Recovery: Total Day-1 upfront capital requirement / additional monthly savings
+  let economicPaybackMonths: number | null = null;
+  let liquidityPaybackMonths: number | null = null;
+  let paybackStatusText = '';
 
-  // 4. Commute time
+  if (savingsDeltaMonthly > 0) {
+    economicPaybackMonths = +(
+      movingCosts.totalNonRecoverableCost / savingsDeltaMonthly
+    ).toFixed(1);
+    liquidityPaybackMonths = +(
+      movingCosts.totalDay1CashRequired / savingsDeltaMonthly
+    ).toFixed(1);
+    paybackStatusText = `Sunk moving cost (${formatINR(
+      movingCosts.totalNonRecoverableCost
+    )}) recouped in ${economicPaybackMonths} mo; full Day-1 cash lock (${formatINR(
+      movingCosts.totalDay1CashRequired
+    )}) amortized in ${liquidityPaybackMonths} mo.`;
+  } else {
+    paybackStatusText =
+      'Relocation does not achieve financial payback under this scenario: additional monthly savings are non-positive compared to your current city baseline.';
+  }
+
+  // 4. Financial Safety & Emergency Reserves
+  // Essential monthly baseline = Rent + 75% Food + Commute + Utilities
+  const essentialMonthlyExpenses =
+    chosenArea.x.e.rent +
+    Math.round(chosenArea.x.e.food * 0.75) +
+    chosenArea.x.e.trans +
+    chosenArea.x.e.util;
+  const emergencyFund3Months = essentialMonthlyExpenses * 3;
+  const emergencyFund6Months = essentialMonthlyExpenses * 6;
+  const safeRelocationRunwayRequired =
+    movingCosts.totalDay1CashRequired + emergencyFund3Months;
+  const availableSavings = state.availableSavings || 0;
+  const readinessGap = Math.max(0, safeRelocationRunwayRequired - availableSavings);
+
+  // 5. Commute time
   const travelMin = chosenArea.drivingMin ?? chosenArea.x.min;
 
   // --- PILLAR EVALUATION ---
@@ -653,14 +728,14 @@ export function evaluateRelocationVerdict(
       label: 'Savings Rate Quality',
       status: 'pass',
       metric: `${destSavingsRate}% net`,
-      detail: `Outstanding wealth retention; exceeds the standard 20% financial independence benchmark.`,
+      detail: `Outstanding wealth retention; comfortably exceeds the 20% financial independence benchmark.`,
     };
   } else if (destSavingsRate >= 18) {
     ratePillar = {
       label: 'Savings Rate Quality',
       status: 'warning',
       metric: `${destSavingsRate}% net`,
-      detail: `Healthy savings cushion, slightly below high-savings potential due to fixed liabilities.`,
+      detail: `Healthy savings cushion, slightly below high-savings potential due to fixed living allocations.`,
     };
   } else {
     ratePillar = {
@@ -671,28 +746,35 @@ export function evaluateRelocationVerdict(
     };
   }
 
-  // Pillar 3: Upfront Liquidity Payback
+  // Pillar 3: Capital Payback Feasibility (Distinguishing Economic vs Liquidity)
   let liquidityPillar: VerdictPillar;
-  if (paybackMonths <= 6) {
+  if (savingsDeltaMonthly <= 0) {
     liquidityPillar = {
-      label: 'Upfront Capital Payback',
-      status: 'pass',
-      metric: `${paybackMonths} months`,
-      detail: `Total moving outlay of ${formatINR(movingCosts.totalMovingOutlay)} is fully amortized by month ${Math.ceil(paybackMonths)}.`,
+      label: 'Capital Payback Feasibility',
+      status: 'fail',
+      metric: 'No Payback',
+      detail: `Additional monthly savings are non-positive. Sunk moving costs (${formatINR(movingCosts.totalNonRecoverableCost)}) cannot be amortized.`,
     };
-  } else if (paybackMonths <= 14) {
+  } else if (economicPaybackMonths !== null && economicPaybackMonths <= 6) {
     liquidityPillar = {
-      label: 'Upfront Capital Payback',
+      label: 'Capital Payback Feasibility',
+      status: 'pass',
+      metric: `${economicPaybackMonths} mo (Economic)`,
+      detail: `Sunk relocation costs (${formatINR(movingCosts.totalNonRecoverableCost)}) recouped in ${economicPaybackMonths} mo; Day-1 cash (${formatINR(movingCosts.totalDay1CashRequired)}) amortized in ${liquidityPaybackMonths} mo.`,
+    };
+  } else if (economicPaybackMonths !== null && economicPaybackMonths <= 14) {
+    liquidityPillar = {
+      label: 'Capital Payback Feasibility',
       status: 'warning',
-      metric: `${paybackMonths} months`,
-      detail: `Requires ${paybackMonths} months of incremental savings to break even on moving freight and rental deposits.`,
+      metric: `${economicPaybackMonths} mo (Economic)`,
+      detail: `Recouping sunk costs requires ${economicPaybackMonths} mo; recovering total Day-1 cash outlay takes ${liquidityPaybackMonths} mo of surplus.`,
     };
   } else {
     liquidityPillar = {
-      label: 'Upfront Capital Payback',
+      label: 'Capital Payback Feasibility',
       status: 'fail',
-      metric: savingsDeltaMonthly <= 0 ? 'No Payback' : `${paybackMonths} months`,
-      detail: `High upfront capital lock (${formatINR(movingCosts.totalMovingOutlay)}) takes over a year to recover.`,
+      metric: `${economicPaybackMonths} mo (Economic)`,
+      detail: `High upfront capital friction (${economicPaybackMonths} mo to recover sunk fees, ${liquidityPaybackMonths} mo for full cash lock).`,
     };
   }
 
@@ -702,22 +784,22 @@ export function evaluateRelocationVerdict(
     commutePillar = {
       label: 'Daily Commute Reality',
       status: 'pass',
-      metric: `${travelMin} min one-way`,
-      detail: `Well within your ${state.maxc} min threshold. Minimal fatigue and surge risk.`,
+      metric: `${travelMin} min peak`,
+      detail: `Well within your ${state.maxc} min threshold. Minimal fatigue and peak congestion exposure.`,
     };
   } else if (travelMin <= state.maxc + 15) {
     commutePillar = {
       label: 'Daily Commute Reality',
       status: 'warning',
-      metric: `${travelMin} min one-way`,
-      detail: `Borderline commute overhead (${travelMin} min). Peak hour rain or bottlenecks may push travel to 55+ min.`,
+      metric: `${travelMin} min peak`,
+      detail: `Borderline commute overhead (${travelMin} min peak). Monsoon rain or bottlenecks may push travel to 55+ min.`,
     };
   } else {
     commutePillar = {
       label: 'Daily Commute Reality',
       status: 'fail',
-      metric: `${travelMin} min one-way`,
-      detail: `Heavy transit penalty (${travelMin} min) exceeding your acceptable comfort radius.`,
+      metric: `${travelMin} min peak`,
+      detail: `Heavy transit penalty (${travelMin} min peak drive) exceeding your acceptable comfort radius.`,
     };
   }
 
@@ -737,23 +819,23 @@ export function evaluateRelocationVerdict(
   if (destSavings < 0 || failCount >= 2 || savingsDeltaMonthly < -5000) {
     status = 'high_financial_risk';
     badgeLabel = 'High Financial Risk';
-    headline = 'Relocation creates negative cashflow or erodes savings';
-    rationale = `Moving to ${chosenArea.a[0]}, ${cityData.name} at your current offer leaves a net monthly surplus of only ${formatINR(destSavings)}/mo. This results in a financial drain compared to staying in ${state.from}. We advise negotiating a higher in-hand package or selecting a more affordable residential corridor.`;
+    headline = 'Relocation creates negative cashflow or severe savings erosion';
+    rationale = `Moving to ${chosenArea.a[0]}, ${cityData.name} leaves a monthly disposable surplus of only ${formatINR(destSavings)}/mo. This creates a net financial penalty compared to staying in ${state.from}. We advise negotiating a higher in-hand package or selecting a more affordable residential corridor.`;
   } else if (passCount >= 3 && failCount === 0) {
     status = 'highly_favourable';
     badgeLabel = 'Highly Favourable';
-    headline = 'Strong career and wealth expansion move';
-    rationale = `This relocation generates ${formatINR(savingsDeltaMonthly)}/mo in incremental cashflow (${destSavingsRate}% savings rate) while keeping road commute to ${travelMin} minutes. The initial setup capital of ${formatINR(movingCosts.totalMovingOutlay)} is comfortably recouped in ${paybackMonths} months.`;
+    headline = 'Strong career and wealth expansion opportunity';
+    rationale = `This relocation generates ${formatINR(savingsDeltaMonthly)}/mo in incremental cashflow (${destSavingsRate}% savings rate) with an estimated peak commute of ${travelMin} minutes. Sunk relocation expenses of ${formatINR(movingCosts.totalNonRecoverableCost)} are recovered in ${economicPaybackMonths} months.`;
   } else if (commutePillar.status === 'fail' && surplusPillar.status === 'pass') {
     status = 'favourable_tradeoffs';
     badgeLabel = 'Favourable with Commute Trade-offs';
     headline = 'Substantial wealth gain with notable transit overhead';
-    rationale = `Financially, your bankable surplus increases by ${formatINR(savingsDeltaMonthly)}/mo (+${formatINR(netAnnualRelocationGain)}/yr). However, the ${travelMin} min one-way drive to ${state.wp?.name || 'office'} represents a real daily time tax. Consider whether hybrid flexibility makes this viable.`;
+    rationale = `Financially, your bankable surplus increases by ${formatINR(savingsDeltaMonthly)}/mo (+${formatINR(netAnnualRelocationGain)}/yr). However, the ${travelMin} min one-way peak drive represents a real daily time tax. Hybrid flexibility will be essential.`;
   } else {
     status = 'marginal_gain';
     badgeLabel = 'Marginal Gain / Capital Intensive';
     headline = 'Viable lifestyle parity, but capital lock requires caution';
-    rationale = `Monthly savings increase by ${formatINR(savingsDeltaMonthly)}/mo. While cashflow remains solvent, the ${cityData.defaultDepositMonths}-month rental deposit and moving costs lock ${formatINR(movingCosts.totalMovingOutlay)} upfront, taking ${paybackMonths} months to amortize.`;
+    rationale = `Monthly savings increase modestly by ${formatINR(savingsDeltaMonthly)}/mo. While monthly cashflow remains solvent, the ${cityData.defaultDepositMonths}-month rental deposit and setup fees lock ${formatINR(movingCosts.totalDay1CashRequired)} upfront on Day 1.`;
   }
 
   return {
@@ -767,16 +849,32 @@ export function evaluateRelocationVerdict(
       liquidity: liquidityPillar,
       commute: commutePillar,
     },
-    paybackMonths,
+    economicPaybackMonths,
+    liquidityPaybackMonths,
+    paybackStatusText,
+    paybackMonths: economicPaybackMonths ?? 999,
     netAnnualRelocationGain,
     currentSavings,
     destSavings,
     savingsDeltaMonthly,
     currentSavingsRate,
     destSavingsRate,
+    essentialMonthlyExpenses,
+    emergencyFund3Months,
+    emergencyFund6Months,
+    safeRelocationRunwayRequired,
+    readinessGap,
   };
 }
 
+/**
+ * Locality Recommendation Engine
+ * Evaluates every locality dynamically using:
+ * - Rent, Accommodation type, Rent-to-income ratio
+ * - Monthly disposable surplus, Road distance, Peak and Baseline duration
+ * - Transport costs, Upfront deposit requirements
+ * Dynamically assigns badges: BEST FIT, BEST SAVINGS, LOWEST RENT, SHORTEST COMMUTE, GOOD ALTERNATIVE, OVER BUDGET, LONG COMMUTE
+ */
 export const calculateNeighbourhoods = (
   city: CityKey = 'blr',
   wp: WorkplaceHub | null,
@@ -808,17 +906,26 @@ export const calculateNeighbourhoods = (
 
   const availableLivingBudget = Math.max(1, state.sal - state.com - target);
 
-  const list: ScoredNeighbourhood[] = areas.map((a, i) => {
+  // 1. First pass: compute core financial and spatial values for each area
+  const rawList = areas.map((a, i) => {
     const x = estimateExpenses(city, a, wpObj, false, state);
     const route = routeMap?.get(a[0]);
 
-    // Use actual road distance and driving duration from OSRM if validly fetched
+    const straightLine = computeStraightLineKm(a[1], a[2], wpObj.lat, wpObj.lng);
     const hasValidRoute = Boolean(route && !route.isFallback && route.distanceKm !== null);
-    const roadKm = hasValidRoute ? (route?.distanceKm ?? null) : null;
-    const drivingMin = hasValidRoute ? (route?.durationMinutes ?? null) : null;
+    const roadKm = hasValidRoute && route?.distanceKm !== null && route?.distanceKm !== undefined
+      ? route.distanceKm
+      : +(straightLine * 1.38).toFixed(1);
+    const baselineMin = hasValidRoute && route?.baselineDurationMin !== null && route?.baselineDurationMin !== undefined
+      ? route.baselineDurationMin
+      : Math.max(10, Math.round(roadKm * 2.2));
+    const peakMin = hasValidRoute && route?.estimatedPeakDurationMin !== null && route?.estimatedPeakDurationMin !== undefined
+      ? route.estimatedPeakDurationMin
+      : Math.round(baselineMin * 1.55);
+    const effectiveDrivingMin = peakMin;
 
-    // Use drivingMin for scoring if available, else baseline benchmark
-    const effectiveDrivingMin = drivingMin ?? x.min;
+    const rentToIncomeRatio = +(x.e.rent / Math.max(1, state.sal)).toFixed(3);
+    const depositRequired = x.e.rent * cityData.defaultDepositMonths;
 
     // 1. Affordability Score (40%): Rent relative to available living allowance
     const rentRatio = x.e.rent / availableLivingBudget;
@@ -836,8 +943,7 @@ export const calculateNeighbourhoods = (
     );
 
     // 3. Savings Potential Score (20%): Monthly surplus vs target savings
-    const savingsRatio =
-      target > 0 ? x.sav / target : x.sav / (state.sal * 0.2);
+    const savingsRatio = target > 0 ? x.sav / target : x.sav / (state.sal * 0.2);
     const savingsScore = clamp(Math.round(50 + savingsRatio * 50), 0, 100);
 
     // 4. Lifestyle Match Score (10%): Area multiplier vs preferred lifestyle tier
@@ -866,58 +972,22 @@ export const calculateNeighbourhoods = (
         lifestyleScore * weights.lifestyle
     );
 
-    const fo = x.sav >= target;
-    const fn = x.sav >= target - 3000;
-    const co = effectiveDrivingMin <= state.maxc;
-    const cn = effectiveDrivingMin <= state.maxc + 15;
-    const g: 0 | 1 | 2 = fo && co ? 0 : fn && cn ? 1 : 2;
-
-    const areaSimpleName = a[0].split(' ·')[0];
-    const roadCommuteText =
-      roadKm !== null && drivingMin !== null
-        ? `~${drivingMin} min (${roadKm} km road drive)`
-        : `~${x.min} min (${x.rd} km estimated)`;
-
-    let why = '';
-    if (g === 0) {
-      why = `${areaSimpleName} is your top corridor match. It keeps housing rent (${formatINR(
-        x.e.rent
-      )}) balanced, offers a direct commute (${roadCommuteText}) and projects a monthly surplus of ${formatINR(
-        x.sav
-      )}/mo.`;
-    } else if (g === 1) {
-      why = `${areaSimpleName} is a viable alternative: rent is ${formatINR(
-        x.e.rent
-      )}/mo with a commute of ${roadCommuteText}, retaining ${formatINR(
-        x.sav
-      )}/mo in bankable surplus.`;
-    } else {
-      why = `${areaSimpleName} stretches your parameters: commute (${roadCommuteText}) or rent leaves a tighter savings cushion (${formatINR(
-        x.sav
-      )}/mo).`;
-    }
-
-    // Filter checks
-    const rentPass =
-      !f.r ||
-      (x.e.rent >= bands[Number(f.r)][0] && x.e.rent < bands[Number(f.r)][1]);
-    const commutePass =
-      !f.c || (drivingMin !== null && drivingMin <= Number(f.c));
-    const affordPass =
-      !f.a || (f.a === 'w' ? fo : f.a === 'n' ? !fo && fn : !fn);
-    const queryPass =
-      !f.q || a[0].toLowerCase().includes(f.q.toLowerCase());
-    const vis = rentPass && commutePass && affordPass && queryPass;
-
     return {
       i,
       a,
       x,
       route,
+      straightLineKm: straightLine,
       roadKm,
-      drivingMin,
+      baselineMin,
+      peakMin,
+      drivingMin: effectiveDrivingMin,
       hasValidRoute,
-      g,
+      routeSource: route?.dataSource || 'Modeled Corridor Network',
+      routeConfidence: route?.confidence || 'modeled',
+      rentToIncomeRatio,
+      monthlySurplus: x.sav,
+      depositRequired,
       sc,
       scoreBreakdown: {
         affordability: affordabilityScore,
@@ -925,7 +995,133 @@ export const calculateNeighbourhoods = (
         savings: savingsScore,
         lifestyle: lifestyleScore,
       },
-      why,
+    };
+  });
+
+  // 2. Determine dynamically qualifying candidates for specialized badges
+  let minRent = Infinity;
+  let minRentIdx = -1;
+  let maxSavings = -Infinity;
+  let maxSavingsIdx = -1;
+  let minCommute = Infinity;
+  let minCommuteIdx = -1;
+  let bestScore = -Infinity;
+  let bestScoreIdx = -1;
+
+  rawList.forEach((item) => {
+    const isAffordable = item.rentToIncomeRatio <= 0.4 && item.monthlySurplus >= 0;
+    const isCommuteAcceptable = item.drivingMin <= state.maxc + 15;
+
+    if (item.x.e.rent < minRent) {
+      minRent = item.x.e.rent;
+      minRentIdx = item.i;
+    }
+    if (item.monthlySurplus > maxSavings) {
+      maxSavings = item.monthlySurplus;
+      maxSavingsIdx = item.i;
+    }
+    if (item.drivingMin < minCommute) {
+      minCommute = item.drivingMin;
+      minCommuteIdx = item.i;
+    }
+    if (isAffordable && isCommuteAcceptable && item.sc > bestScore) {
+      bestScore = item.sc;
+      bestScoreIdx = item.i;
+    }
+  });
+
+  // If no area passed strict criteria for bestScore, fallback to highest sc overall
+  if (bestScoreIdx === -1) {
+    bestScoreIdx = rawList.reduce((maxIdx, curr) => (curr.sc > rawList[maxIdx].sc ? curr.i : maxIdx), 0);
+  }
+
+  // 3. Second pass: assign badge and grounded 'whyExplanation'
+  const list: ScoredNeighbourhood[] = rawList.map((item) => {
+    let badge: LocalityBadge;
+    let badgeTone: ScoredNeighbourhood['badgeTone'];
+    let g: 0 | 1 | 2;
+
+    if (item.monthlySurplus < 0 || item.rentToIncomeRatio > 0.42) {
+      badge = 'OVER BUDGET';
+      badgeTone = 'rose';
+      g = 2;
+    } else if (item.drivingMin > state.maxc + 20) {
+      badge = 'LONG COMMUTE';
+      badgeTone = 'amber';
+      g = 2;
+    } else if (item.i === bestScoreIdx) {
+      badge = 'BEST FIT';
+      badgeTone = 'emerald';
+      g = 0;
+    } else if (item.i === maxSavingsIdx && item.monthlySurplus > 0) {
+      badge = 'BEST SAVINGS';
+      badgeTone = 'emerald';
+      g = 0;
+    } else if (item.i === minRentIdx) {
+      badge = 'LOWEST RENT';
+      badgeTone = 'blue';
+      g = 0;
+    } else if (item.i === minCommuteIdx) {
+      badge = 'SHORTEST COMMUTE';
+      badgeTone = 'blue';
+      g = 0;
+    } else {
+      badge = 'GOOD ALTERNATIVE';
+      badgeTone = 'neutral';
+      g = 1;
+    }
+
+    const areaSimpleName = item.a[0].split(' ·')[0];
+    const roadCommuteText = `~${item.peakMin} min peak (${item.roadKm} km road drive)`;
+
+    const whyExplanation = `${areaSimpleName} is designated as ${badge}. Monthly rent of ${formatINR(
+      item.x.e.rent
+    )} consumes ${Math.round(
+      item.rentToIncomeRatio * 100
+    )}% of in-hand salary. Estimated peak-hour commute to ${wpObj.name} is ${roadCommuteText}, yielding ${formatINR(
+      item.monthlySurplus
+    )}/mo in disposable surplus with an upfront deposit requirement of ${formatINR(
+      item.depositRequired
+    )}.`;
+
+    const factors = {
+      rentRatioText: `${Math.round(item.rentToIncomeRatio * 100)}% of monthly take-home (${
+        item.rentToIncomeRatio <= 0.3
+          ? 'Comfortable affordability'
+          : item.rentToIncomeRatio <= 0.4
+          ? 'Moderate allocation'
+          : 'High rent burden'
+      })`,
+      commuteText: `~${item.peakMin} min peak drive (~${item.baselineMin} min off-peak baseline, ${item.roadKm} km road distance)`,
+      surplusText: `${formatINR(item.monthlySurplus)}/mo disposable monthly surplus`,
+      depositText: `${formatINR(item.depositRequired)} upfront deposit (${cityData.defaultDepositMonths} mo norm in ${cityData.name})`,
+    };
+
+    // Filter checks
+    const rentPass =
+      !f.r ||
+      (item.x.e.rent >= bands[Number(f.r)][0] && item.x.e.rent < bands[Number(f.r)][1]);
+    const commutePass =
+      !f.c || (item.drivingMin !== null && item.drivingMin <= Number(f.c));
+    const affordPass =
+      !f.a ||
+      (f.a === 'w'
+        ? item.monthlySurplus >= target
+        : f.a === 'n'
+        ? item.monthlySurplus >= target - 3000
+        : item.monthlySurplus < target - 3000);
+    const queryPass =
+      !f.q || item.a[0].toLowerCase().includes(f.q.toLowerCase());
+    const vis = rentPass && commutePass && affordPass && queryPass;
+
+    return {
+      ...item,
+      badge,
+      badgeTone,
+      g,
+      why: whyExplanation,
+      whyExplanation,
+      factors,
       vis,
     };
   });
@@ -957,22 +1153,93 @@ export const getChosenNeighbourhood = (
     const found = scored.find((r) => r.i === state.sel[0]);
     if (found) return found;
   }
-  return scored[0] || {
-    i: 0,
-    a: ['Central Corridor', 12.97, 77.59, 1.0],
-    x: {
-      km: 10,
-      rd: 14,
-      min: 30,
-      e: { rent: 22000, food: 9000, trans: 3500, util: 2000, net: 1000, pers: 3000, ent: 3000, oth: 2000 },
-      tot: 45500,
-      sav: 49500,
-    },
-    hasValidRoute: false,
-    g: 0,
-    sc: 90,
-    scoreBreakdown: { affordability: 90, commute: 85, savings: 90, lifestyle: 85 },
-    why: 'Default selection',
-    vis: true,
-  };
+  return (
+    scored[0] || {
+      i: 0,
+      a: ['Central Corridor', 12.97, 77.59, 1.0],
+      x: {
+        km: 10,
+        rd: 14,
+        min: 30,
+        e: {
+          rent: 22000,
+          food: 9000,
+          trans: 3500,
+          util: 2000,
+          net: 1000,
+          pers: 3000,
+          ent: 3000,
+          oth: 2000,
+        },
+        tot: 45500,
+        sav: 49500,
+      },
+      straightLineKm: 10,
+      roadKm: 14,
+      baselineMin: 22,
+      peakMin: 34,
+      drivingMin: 34,
+      hasValidRoute: false,
+      routeSource: 'Modeled Corridor Network',
+      routeConfidence: 'modeled',
+      badge: 'BEST FIT',
+      badgeTone: 'emerald',
+      g: 0,
+      sc: 90,
+      rentToIncomeRatio: 0.22,
+      monthlySurplus: 49500,
+      depositRequired: 176000,
+      why: 'Default corridor selection based on baseline city averages.',
+      whyExplanation: 'Default corridor selection based on baseline city averages.',
+      factors: {
+        rentRatioText: '22% of monthly take-home',
+        commuteText: '~34 min peak commute',
+        surplusText: '₹49,500/mo surplus',
+        depositText: '₹1,76,000 upfront deposit',
+      },
+      scoreBreakdown: { affordability: 90, commute: 85, savings: 90, lifestyle: 85 },
+      vis: true,
+    }
+  );
 };
+
+/**
+ * Wealth Projection Calculator:
+ * Computes uninvested savings principal vs compounding investment returns
+ * Supports selectable annual return rates (e.g. 6% debt, 9% balanced, 12% equity index)
+ */
+export function calculateWealthProjection(
+  monthlySavings: number,
+  months: number,
+  annualReturnRate: number
+): {
+  uninvestedPrincipal: number;
+  investmentReturns: number;
+  totalWealth: number;
+} {
+  const safeMonthlySavings = Math.max(0, monthlySavings);
+  const uninvestedPrincipal = safeMonthlySavings * months;
+
+  if (annualReturnRate <= 0) {
+    return {
+      uninvestedPrincipal,
+      investmentReturns: 0,
+      totalWealth: uninvestedPrincipal,
+    };
+  }
+
+  const monthlyRate = annualReturnRate / 100 / 12;
+  // SIP Future Value formula: P * [((1 + r)^n - 1) / r] * (1 + r)
+  const totalWealth = Math.round(
+    safeMonthlySavings *
+      ((Math.pow(1 + monthlyRate, months) - 1) / monthlyRate) *
+      (1 + monthlyRate)
+  );
+  const investmentReturns = Math.max(0, totalWealth - uninvestedPrincipal);
+
+  return {
+    uninvestedPrincipal,
+    investmentReturns,
+    totalWealth,
+  };
+}
