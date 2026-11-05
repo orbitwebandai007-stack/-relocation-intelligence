@@ -7,12 +7,14 @@ import React from 'react';
 interface ChamferCardProps {
   children: React.ReactNode;
   className?: string;
+  innerClassName?: string;
   notchSize?: number; // cut size in px, defaults to 22
 }
 
 export const ChamferCard: React.FC<ChamferCardProps> = ({
   children,
   className = '',
+  innerClassName = 'p-4 sm:p-6',
   notchSize = 22,
 }) => {
   // We use a dual-layer clip-path to ensure the 1px hairline border traces along the 45-degree diagonal beveled cut
@@ -25,7 +27,7 @@ export const ChamferCard: React.FC<ChamferCardProps> = ({
       style={{ clipPath: outerClip }}
     >
       <div
-        className="bg-white p-4 sm:p-6 flex flex-col justify-between h-full w-full"
+        className={`bg-white flex flex-col justify-between h-full w-full ${innerClassName}`}
         style={{ clipPath: innerClip }}
       >
         {children}

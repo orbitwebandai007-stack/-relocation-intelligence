@@ -954,8 +954,8 @@ export const MapComponent: React.FC<MapComponentProps> = ({
       {/* Map DOM Canvas */}
       <div ref={mapContainerRef} className="h-full w-full" />
 
-      {/* Top-Left Floating Controls & Telemetry HUD Stack (Guaranteed non-overlapping) */}
-      <div className="absolute top-3 sm:top-4 left-3 sm:left-4 z-20 flex flex-col items-start gap-2.5 max-w-[calc(100vw-1.5rem)] pointer-events-none">
+      {/* Top-Left Floating Controls & Telemetry HUD Stack (Cleanly offset below floating header) */}
+      <div className="absolute top-16 sm:top-20 left-3 sm:left-4 z-20 flex flex-col items-start gap-2.5 max-w-[calc(100vw-1.5rem)] pointer-events-none">
         {/* Top Control Bar: Office Banner + Hide/Show Panel + Zoom Controls */}
         <div className="flex flex-wrap items-center gap-2 pointer-events-auto">
           {/* Office Location Banner (Visible during recommendations phase) */}

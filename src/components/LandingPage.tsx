@@ -132,32 +132,42 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 
   return (
     <div className="space-y-20 sm:space-y-28 lg:space-y-36">
-      {/* 1. EDITORIAL HERO SECTION MATCHING REFERENCE WITH WORTHWHILE IDENTITY */}
-      <section className="relative w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 sm:pt-6 pb-6 sm:pb-10">
-        {/* The Main Tinted Rounded Enclosure (matching reference hero container) */}
-        <div className="relative rounded-[28px] sm:rounded-[36px] lg:rounded-[44px] bg-[#EAF3ED] border-2 border-[#18231E]/15 overflow-hidden p-6 sm:p-10 lg:p-12 shadow-sm">
-          {/* Subtle Hand-Drawn Background Accents (Star/Asterisk Glyphs) */}
-          <div className="absolute top-8 right-12 text-[#176B50]/30 select-none pointer-events-none hidden md:block">
-            <svg className="w-8 h-8" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M12 0L14 9L23 12L14 15L12 24L10 15L1 12L10 9Z" />
-            </svg>
-          </div>
-          <div className="absolute top-20 left-1/2 text-[#176B50]/25 select-none pointer-events-none hidden lg:block text-2xl font-mono">
-            ✦
+      {/* 1. ARCHITECTURAL TECH HERO SECTION MATCHING SPEC CARDS & REFERENCE */}
+      <section className="relative w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 min-h-[calc(100vh-5rem)] flex flex-col justify-center py-6 sm:py-8 lg:py-10">
+        {/* ChamferCard Tech Container */}
+        <ChamferCard
+          notchSize={28}
+          className="w-full shadow-xs hover:shadow-md transition-shadow"
+          innerClassName="p-6 sm:p-8 lg:p-10 flex flex-col justify-between h-full w-full"
+        >
+          {/* Tech Card Spec Header (matching other sections) */}
+          <div className="flex items-center justify-between pb-4 mb-6 border-b border-[#E5EAE5]">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-[#176B50] animate-pulse" />
+              <span className="font-mono text-xs font-bold tracking-wider text-[#18231E] uppercase">
+                WORTHWHILE SPEC: RELOCATION INTELLIGENCE // 06 METRO HUBS
+              </span>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="hidden sm:inline font-mono text-[10px] text-[#5F6A63] uppercase tracking-wider">
+                SYS_VER 3.4 // LIVE MODEL
+              </span>
+              <DotGlyph type="reticle" className="w-4 h-4 text-[#18231E]" />
+            </div>
           </div>
 
           {/* 2-Column Responsive Split */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-center">
             {/* LEFT COLUMN: Headline, Mission Copy, Actions, Route Capsule */}
-            <div className="lg:col-span-7 space-y-6 sm:space-y-7 z-10">
+            <div className="lg:col-span-7 space-y-6 z-10">
               {/* Subtle Domain Kicker */}
               <div className="inline-flex items-center gap-2 text-xs font-mono font-bold tracking-wider uppercase text-[#176B50]">
-                <span className="w-2 h-2 rounded-full bg-[#176B50]" />
-                <span>RELOCATION INTELLIGENCE FOR TECH TEAMS & PROFESSIONALS</span>
+                <span className="w-1.5 h-1.5 rounded-full bg-[#176B50]" />
+                <span>WORTHWHILE // RELOCATION INTELLIGENCE</span>
               </div>
 
               {/* Display Headline matching reference bold uppercase rhythm */}
-              <h1 className="text-3xl sm:text-5xl lg:text-[54px] font-black tracking-tight text-[#18231E] font-heading leading-[1.08] text-balance uppercase">
+              <h1 className="text-3xl sm:text-4xl lg:text-[46px] font-black tracking-tight text-[#18231E] font-heading leading-[1.12] text-balance uppercase">
                 FOCUS ON YOUR CAREER, WE'LL HANDLE YOUR CITY MOVE.
               </h1>
 
@@ -166,25 +176,25 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 Hi, we built <strong className="font-semibold text-[#18231E]">Worthwhile</strong> so Indian tech professionals never get trapped by the annual CTC illusion. Our engine calculates real in-hand salary, hidden rental deposit locks, peak traffic commute corridors, and true monthly savings across 6 major Indian tech hubs before you sign the offer.
               </p>
 
-              {/* Action Buttons: Start Relocation Plan & Resume Plan */}
+              {/* Action Buttons: Start Relocation Plan & Resume Plan - Guaranteed no clipping or overflow */}
               <div className="space-y-3 pt-1">
                 <div className="flex flex-wrap items-center gap-3">
                   {/* Primary Button */}
                   <button
                     type="button"
                     onClick={handleStartNew}
-                    className="px-6 py-3.5 rounded-xl text-xs sm:text-sm font-semibold text-white bg-[#0F3020] hover:bg-[#176B50] shadow-sm hover:shadow-md transition-all active:scale-[0.98] text-center whitespace-nowrap cursor-pointer inline-flex items-center gap-2.5"
+                    className="px-6 py-3.5 rounded-xl text-xs sm:text-sm font-semibold text-white bg-[#18231E] hover:bg-[#176B50] shadow-xs hover:shadow-md transition-all active:scale-[0.98] text-center whitespace-nowrap cursor-pointer inline-flex items-center gap-2.5"
                   >
                     <span>Start Relocation Plan</span>
                     <ArrowRight className="w-4 h-4" />
                   </button>
 
                   {/* Secondary Button */}
-                  {hasUnfinishedPlan ? (
+                  {hasUnfinishedPlan && (
                     <button
                       type="button"
                       onClick={handleResume}
-                      className="px-5 py-3.5 rounded-xl text-xs sm:text-sm font-semibold text-[#18231E] bg-white border border-[#18231E]/30 hover:border-[#18231E] hover:bg-neutral-50 transition-all text-center whitespace-nowrap shadow-xs active:scale-[0.98] cursor-pointer inline-flex items-center gap-2 group"
+                      className="px-5 py-3.5 rounded-xl text-xs sm:text-sm font-semibold text-[#18231E] bg-white border border-[#18231E]/25 hover:border-[#176B50] hover:bg-[#F8F9F7] transition-all text-center whitespace-nowrap shadow-2xs active:scale-[0.98] cursor-pointer inline-flex items-center gap-2 group"
                       title="Resume your unfinished relocation plan where you left off"
                     >
                       <span className="w-2 h-2 rounded-full bg-[#176B50] animate-pulse shrink-0" />
@@ -197,23 +207,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                           : `Stage ${state.st + 1}`}
                       </span>
                     </button>
-                  ) : (
-                    <div className="relative group inline-block">
-                      <button
-                        type="button"
-                        disabled
-                        aria-disabled="true"
-                        className="px-5 py-3.5 rounded-xl text-xs sm:text-sm font-medium text-[#5F6A63]/50 bg-white/60 border border-neutral-300/70 cursor-not-allowed text-center whitespace-nowrap select-none inline-flex items-center gap-2"
-                      >
-                        <span className="w-1.5 h-1.5 rounded-full bg-neutral-300 shrink-0" />
-                        <span>Resume Plan</span>
-                      </button>
-                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-30 pointer-events-none">
-                        <div className="bg-[#18231E] text-white text-[11px] font-medium py-1 px-2.5 rounded-lg shadow-lg whitespace-nowrap">
-                          No unfinished plan in progress. Click "Start Relocation Plan" to begin.
-                        </div>
-                      </div>
-                    </div>
                   )}
                 </div>
 
@@ -221,7 +214,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 <div className="text-[11px] font-medium text-[#5F6A63] flex flex-wrap items-center gap-x-2 gap-y-1">
                   <span>Free for Indian tech professionals</span>
                   <span>·</span>
-                  <span>No account or credit card required</span>
+                  <span>No account required</span>
                   <span>·</span>
                   <span className="text-[#176B50] font-semibold">Immediate precision breakdown</span>
                 </div>
@@ -229,15 +222,15 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 
               {/* Quick Origin & Destination Route Capsule */}
               <div className="pt-2">
-                <div className="inline-flex flex-col sm:flex-row items-stretch sm:items-center bg-white/95 backdrop-blur-md p-2 rounded-2xl border border-[#18231E]/15 shadow-2xs gap-2 max-w-xl w-full">
-                  <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-[#F8F9F7] border border-[#E5EAE5] flex-1 min-w-0">
+                <div className="inline-flex flex-col sm:flex-row items-stretch sm:items-center bg-[#F8F9F7] p-2 rounded-2xl border border-[#E5EAE5] shadow-2xs gap-2 max-w-xl w-full">
+                  <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white border border-[#E5EAE5] flex-1 min-w-0">
                     <MapPin className="w-3.5 h-3.5 text-[#5F6A63] shrink-0" />
                     <span className="text-xs font-medium text-[#18231E] truncate">
                       From: <span className="font-semibold">{state.from || "Lucknow"}</span>
                     </span>
                   </div>
 
-                  <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-[#F8F9F7] border border-[#E5EAE5] flex-1 min-w-0">
+                  <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white border border-[#E5EAE5] flex-1 min-w-0">
                     <Navigation className="w-3.5 h-3.5 text-[#176B50] shrink-0" />
                     <span className="text-xs font-medium text-[#18231E] truncate">
                       To: <span className="font-semibold">{CITIES[state.city]?.name || "Bengaluru"}</span> {state.wp ? `(${state.wp.name})` : "(All Hubs)"}
@@ -247,7 +240,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                   <button
                     type="button"
                     onClick={handleStartNew}
-                    className="h-9 px-3.5 rounded-xl bg-[#176B50] hover:bg-[#125740] text-white text-xs font-semibold flex items-center justify-center shrink-0 shadow-2xs transition-transform active:scale-95 gap-1.5 cursor-pointer"
+                    className="h-9 px-4 rounded-xl bg-[#176B50] hover:bg-[#125740] text-white text-xs font-semibold flex items-center justify-center shrink-0 shadow-2xs transition-transform active:scale-95 gap-1.5 cursor-pointer"
                     title="Start relocation plan for this route"
                   >
                     <span>Explore</span>
@@ -257,65 +250,29 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               </div>
             </div>
 
-            {/* RIGHT COLUMN: The Editorial Risograph Illustration & Floating Badges */}
+            {/* RIGHT COLUMN: The Editorial Green-and-White Risograph Tech Illustration */}
             <div className="lg:col-span-5 relative flex items-center justify-center">
-              {/* Decorative Floating Asterisks & Accents matching reference */}
-              <div className="absolute -top-3 -left-2 text-[#18231E] text-2xl font-serif select-none pointer-events-none hidden sm:block">
-                ✶
-              </div>
-              <div className="absolute top-10 -right-3 text-[#176B50] text-3xl font-serif select-none pointer-events-none hidden sm:block">
-                ✦
-              </div>
-              <div className="absolute -bottom-2 left-6 text-[#18231E]/40 text-xl font-mono select-none pointer-events-none hidden sm:block">
-                +
-              </div>
-
-              {/* Illustration Container */}
-              <div className="relative w-full max-w-[440px] mx-auto rounded-3xl overflow-hidden border-2 border-[#18231E]/15 bg-[#E7F1EB] shadow-md group">
+              <TechWindow className="w-full max-w-[440px] rounded-2xl border border-[#E5EAE5] bg-[#F4F9F6] p-2 overflow-hidden shadow-2xs group">
                 <img
-                  src="/assets/images/worthwhile_hero_character.jpg"
-                  alt="Worthwhile Relocation Intelligence Illustration"
-                  className="w-full h-auto object-cover transition-transform duration-500 group-hover:scale-[1.02]"
+                  src="/assets/images/relocation_confusion_map.jpg"
+                  alt="Worthwhile · Relocation Intelligence - Modeling salary, rent, deposit, and commute factors"
+                  className="w-full h-auto object-cover rounded-xl transition-transform duration-500 group-hover:scale-[1.02]"
                   loading="eager"
                   referrerPolicy="no-referrer"
                 />
 
-                {/* Interactive Floating Corridor Tags on the Illustration */}
-                <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between gap-2 p-2.5 rounded-xl bg-white/95 backdrop-blur-md border border-[#18231E]/10 shadow-xs">
+                {/* Floating Technical Status Badge */}
+                <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between gap-2 p-2.5 rounded-xl bg-white/95 backdrop-blur-md border border-[#E5EAE5] shadow-xs">
                   <div className="flex items-center gap-1.5 min-w-0">
                     <span className="w-2 h-2 rounded-full bg-[#176B50]" />
-                    <span className="text-[11px] font-bold text-[#18231E] truncate">Bengaluru · ORR Corridor</span>
+                    <span className="text-[11px] font-bold text-[#18231E] truncate">Worthwhile Decision Matrix</span>
                   </div>
-                  <span className="text-[11px] font-mono font-semibold text-[#176B50] shrink-0">~24m commute</span>
+                  <span className="text-[10px] font-mono font-semibold text-[#176B50] shrink-0">Relocation Intelligence</span>
                 </div>
-              </div>
+              </TechWindow>
             </div>
           </div>
-        </div>
-
-        {/* 3-ITEM SOCIAL PROOF / METRIC STRIP (Directly below hero card, matching reference) */}
-        <div className="mt-8 pt-2 pb-2 flex flex-wrap items-center justify-center gap-6 sm:gap-12 text-center">
-          <div className="flex items-center gap-2.5 text-xs sm:text-sm font-semibold text-[#18231E]">
-            <svg className="w-4 h-4 text-[#18231E] shrink-0 fill-current" viewBox="0 0 24 24">
-              <path d="M12 0L14.5 9.5L24 12L14.5 14.5L12 24L9.5 14.5L0 12L9.5 9.5Z" />
-            </svg>
-            <span>14,000+ Relocations Planned</span>
-          </div>
-
-          <div className="flex items-center gap-2.5 text-xs sm:text-sm font-semibold text-[#18231E]">
-            <svg className="w-4 h-4 text-[#18231E] shrink-0 fill-current" viewBox="0 0 24 24">
-              <path d="M12 0L14.5 9.5L24 12L14.5 14.5L12 24L9.5 14.5L0 12L9.5 9.5Z" />
-            </svg>
-            <span>6 Major Indian Tech Metros</span>
-          </div>
-
-          <div className="flex items-center gap-2.5 text-xs sm:text-sm font-semibold text-[#18231E]">
-            <svg className="w-4 h-4 text-[#18231E] shrink-0 fill-current" viewBox="0 0 24 24">
-              <path d="M12 0L14.5 9.5L24 12L14.5 14.5L12 24L9.5 14.5L0 12L9.5 9.5Z" />
-            </svg>
-            <span>Free & Independent Benchmarks</span>
-          </div>
-        </div>
+        </ChamferCard>
       </section>
 
       {/* 2. THE PROBLEM: THE SALARY ILLUSION */}

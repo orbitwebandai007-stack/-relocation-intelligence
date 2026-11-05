@@ -378,7 +378,7 @@ export default function App() {
         </main>
       ) : (
         /* 2. FULL-SCREEN MAP EXPERIENCE */
-        <div className="relative flex-1 w-full h-[calc(100vh-64px)] sm:h-[calc(100vh-80px)] overflow-hidden">
+        <div className="relative w-full h-screen overflow-hidden">
           {/* Main Full-Screen Map Canvas */}
           <div className="absolute inset-0 z-0">
             <MapComponent
@@ -429,7 +429,7 @@ export default function App() {
             <>
               {isPanelVisible ? (
                 <div
-                  className={`absolute top-2 right-2 bottom-2 left-2 sm:left-auto sm:top-3 sm:right-3 sm:bottom-3 ${
+                  className={`absolute top-16 sm:top-20 right-2 bottom-2 left-2 sm:left-auto sm:right-3 sm:bottom-3 ${
                     state.st === 5
                       ? 'w-auto sm:w-[680px] lg:w-[840px] max-w-[95vw]'
                       : 'w-auto sm:w-[420px] lg:w-[450px]'

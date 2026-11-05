@@ -167,7 +167,7 @@ export const Footer: React.FC<FooterProps> = ({ onStartNewPlan, onStartPlanning 
             <p>
               Worthwhile HQ, Outer Ring Road Corridor, Bengaluru & Cyber City, Gurugram, India.
             </p>
-            <p>© 2026 Worthwhile. All rights reserved.</p>
+            <p>© 2026 Worthwhile · Relocation Intelligence. All rights reserved.</p>
           </div>
 
           {/* Circular Social Badges (LinkedIn, X, Instagram, Facebook/Globe style from reference) */}
