@@ -132,269 +132,188 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 
   return (
     <div className="space-y-20 sm:space-y-28 lg:space-y-36">
-      {/* 1. UBER-INSPIRED HERO WITH MAP BACKGROUND */}
-      <section className="relative min-h-[calc(100vh-4rem)] sm:min-h-[calc(100vh-5rem)] w-full overflow-hidden flex flex-col justify-center pt-12 sm:pt-20 lg:pt-24 pb-14 sm:pb-20">
-        {/* Full-bleed light subtle low-contrast map background */}
-        <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none select-none">
-          {/* Detailed Street Grid SVG simulation with low contrast and street labels */}
-          <svg
-            className="w-full h-full object-cover opacity-85"
-            viewBox="0 0 1440 800"
-            preserveAspectRatio="xMidYMid slice"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            {/* Background base tone */}
-            <rect width="1440" height="800" fill="#F8F9F7" />
-
-            {/* Subtle arterial roads and blocks */}
-            <g stroke="#EAEFE8" strokeWidth="12" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M 0 160 L 1440 220" />
-              <path d="M 0 420 L 1440 480" />
-              <path d="M 0 680 L 1440 700" />
-              <path d="M 400 0 L 520 800" />
-              <path d="M 850 0 L 910 800" />
-              <path d="M 1200 0 L 1260 800" />
-            </g>
-
-            {/* Minor streets grid */}
-            <g stroke="#EEF2EC" strokeWidth="4" strokeLinecap="round">
-              <path d="M 100 0 L 100 800" />
-              <path d="M 250 0 L 250 800" />
-              <path d="M 600 0 L 600 800" />
-              <path d="M 720 0 L 720 800" />
-              <path d="M 1020 0 L 1020 800" />
-              <path d="M 1120 0 L 1120 800" />
-              <path d="M 1340 0 L 1340 800" />
-
-              <path d="M 0 80 L 1440 80" />
-              <path d="M 0 280 L 1440 280" />
-              <path d="M 0 360 L 1440 360" />
-              <path d="M 0 540 L 1440 540" />
-              <path d="M 0 620 L 1440 620" />
-              <path d="M 0 760 L 1440 760" />
-            </g>
-
-            {/* Diagonal avenue lines */}
-            <path
-              d="M 680 800 L 1180 180"
-              stroke="#E2E9E0"
-              strokeWidth="10"
-              strokeLinecap="round"
-            />
-            <path
-              d="M 500 650 L 1440 380"
-              stroke="#E2E9E0"
-              strokeWidth="8"
-              strokeLinecap="round"
-            />
-
-            {/* Subtle street name typography (Uber style) */}
-            <g fill="#A8B4A6" fontSize="11" fontFamily="'Inter', sans-serif" fontWeight="500">
-              <text x="880" y="140" transform="rotate(7 880 140)">Outer Ring Road</text>
-              <text x="960" y="320" transform="rotate(-5 960 320)">Bellandur Main Rd</text>
-              <text x="1150" y="240" transform="rotate(35 1150 240)">Sarjapur Expressway</text>
-              <text x="760" y="490">100 Feet Rd · Indiranagar</text>
-              <text x="900" y="660">Old Airport Road</text>
-              <text x="1220" y="580">Whitefield Corridor</text>
-              <text x="1050" y="740">HAL Airport Runway</text>
-            </g>
-
-            {/* Real Road Route Connection (Uber style orange/pine gradient line) */}
-            <g>
-              {/* Outer soft glow route casing */}
-              <path
-                d="M 940 680 L 960 520 L 1120 380 L 1220 320 L 1240 240"
-                stroke="#176B50"
-                strokeWidth="6"
-                strokeOpacity="0.25"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-
-              {/* Main solid route */}
-              <path
-                d="M 940 680 L 960 520 L 1120 380 L 1220 320 L 1240 240"
-                stroke="#176B50"
-                strokeWidth="3.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-
-              {/* Animated pulsating dash track */}
-              <path
-                d="M 940 680 L 960 520 L 1120 380 L 1220 320 L 1240 240"
-                stroke="#C8E6A0"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeDasharray="6 12"
-                className="animate-pulse"
-              />
-            </g>
-
-            {/* Origin Marker (Workplace Hub with soft pulsing concentric radar rings) */}
-            <g transform="translate(940, 680)">
-              <circle r="45" fill="#176B50" fillOpacity="0.06" />
-              <circle r="28" fill="#176B50" fillOpacity="0.12" />
-              <circle r="12" fill="#176B50" />
-              <circle r="4.5" fill="#FFFFFF" />
-            </g>
-
-            {/* Destination Marker with Concentric Radar Rings & Uber Tag */}
-            <g transform="translate(1240, 240)">
-              <circle r="48" fill="#176B50" fillOpacity="0.08" />
-              <circle r="26" fill="#176B50" fillOpacity="0.18" />
-              <circle r="9" fill="#176B50" />
-              <circle r="3.5" fill="#C8E6A0" />
-            </g>
-          </svg>
-
-          {/* Destination Callout Badge on Map (like Uber's DESTINATION tag) */}
-          <div className="absolute top-[210px] right-[230px] hidden sm:flex items-center gap-1.5 bg-white px-2.5 py-1 rounded shadow-xs border border-[#E5EAE5] text-[10px] font-mono font-bold tracking-wider text-[#18231E]">
-            <span className="text-[#176B50]">DESTINATION:</span>
-            <span>INDIRANAGAR</span>
+      {/* 1. EDITORIAL HERO SECTION MATCHING REFERENCE WITH WORTHWHILE IDENTITY */}
+      <section className="relative w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 sm:pt-6 pb-6 sm:pb-10">
+        {/* The Main Tinted Rounded Enclosure (matching reference hero container) */}
+        <div className="relative rounded-[28px] sm:rounded-[36px] lg:rounded-[44px] bg-[#EAF3ED] border-2 border-[#18231E]/15 overflow-hidden p-6 sm:p-10 lg:p-12 shadow-sm">
+          {/* Subtle Hand-Drawn Background Accents (Star/Asterisk Glyphs) */}
+          <div className="absolute top-8 right-12 text-[#176B50]/30 select-none pointer-events-none hidden md:block">
+            <svg className="w-8 h-8" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 0L14 9L23 12L14 15L12 24L10 15L1 12L10 9Z" />
+            </svg>
+          </div>
+          <div className="absolute top-20 left-1/2 text-[#176B50]/25 select-none pointer-events-none hidden lg:block text-2xl font-mono">
+            ✦
           </div>
 
-          <div className="absolute top-[660px] right-[490px] hidden sm:flex items-center gap-1.5 bg-white px-2.5 py-1 rounded shadow-xs border border-[#E5EAE5] text-[10px] font-mono font-bold tracking-wider text-[#18231E]">
-            <span className="text-[#176B50]">OFFICE:</span>
-            <span>BELLANDUR TECH CAMPUS</span>
+          {/* 2-Column Responsive Split */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-center">
+            {/* LEFT COLUMN: Headline, Mission Copy, Actions, Route Capsule */}
+            <div className="lg:col-span-7 space-y-6 sm:space-y-7 z-10">
+              {/* Subtle Domain Kicker */}
+              <div className="inline-flex items-center gap-2 text-xs font-mono font-bold tracking-wider uppercase text-[#176B50]">
+                <span className="w-2 h-2 rounded-full bg-[#176B50]" />
+                <span>RELOCATION INTELLIGENCE FOR TECH TEAMS & PROFESSIONALS</span>
+              </div>
+
+              {/* Display Headline matching reference bold uppercase rhythm */}
+              <h1 className="text-3xl sm:text-5xl lg:text-[54px] font-black tracking-tight text-[#18231E] font-heading leading-[1.08] text-balance uppercase">
+                FOCUS ON YOUR CAREER, WE'LL HANDLE YOUR CITY MOVE.
+              </h1>
+
+              {/* Mission / Context Paragraph matching reference founder intro style */}
+              <p className="text-sm sm:text-base text-[#47544C] leading-relaxed max-w-xl font-normal">
+                Hi, we built <strong className="font-semibold text-[#18231E]">Worthwhile</strong> so Indian tech professionals never get trapped by the annual CTC illusion. Our engine calculates real in-hand salary, hidden rental deposit locks, peak traffic commute corridors, and true monthly savings across 6 major Indian tech hubs before you sign the offer.
+              </p>
+
+              {/* Action Buttons: Start Relocation Plan & Resume Plan */}
+              <div className="space-y-3 pt-1">
+                <div className="flex flex-wrap items-center gap-3">
+                  {/* Primary Button */}
+                  <button
+                    type="button"
+                    onClick={handleStartNew}
+                    className="px-6 py-3.5 rounded-xl text-xs sm:text-sm font-semibold text-white bg-[#0F3020] hover:bg-[#176B50] shadow-sm hover:shadow-md transition-all active:scale-[0.98] text-center whitespace-nowrap cursor-pointer inline-flex items-center gap-2.5"
+                  >
+                    <span>Start Relocation Plan</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </button>
+
+                  {/* Secondary Button */}
+                  {hasUnfinishedPlan ? (
+                    <button
+                      type="button"
+                      onClick={handleResume}
+                      className="px-5 py-3.5 rounded-xl text-xs sm:text-sm font-semibold text-[#18231E] bg-white border border-[#18231E]/30 hover:border-[#18231E] hover:bg-neutral-50 transition-all text-center whitespace-nowrap shadow-xs active:scale-[0.98] cursor-pointer inline-flex items-center gap-2 group"
+                      title="Resume your unfinished relocation plan where you left off"
+                    >
+                      <span className="w-2 h-2 rounded-full bg-[#176B50] animate-pulse shrink-0" />
+                      <span>Resume Plan</span>
+                      <span className="text-[10px] font-mono font-medium text-[#176B50] bg-[#176B50]/10 px-2 py-0.5 rounded-md group-hover:bg-[#176B50]/15 transition-colors">
+                        {state.flowPhase === "workplace_select"
+                          ? "Stage 2"
+                          : state.flowPhase === "onboarding"
+                          ? "Stage 1"
+                          : `Stage ${state.st + 1}`}
+                      </span>
+                    </button>
+                  ) : (
+                    <div className="relative group inline-block">
+                      <button
+                        type="button"
+                        disabled
+                        aria-disabled="true"
+                        className="px-5 py-3.5 rounded-xl text-xs sm:text-sm font-medium text-[#5F6A63]/50 bg-white/60 border border-neutral-300/70 cursor-not-allowed text-center whitespace-nowrap select-none inline-flex items-center gap-2"
+                      >
+                        <span className="w-1.5 h-1.5 rounded-full bg-neutral-300 shrink-0" />
+                        <span>Resume Plan</span>
+                      </button>
+                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-30 pointer-events-none">
+                        <div className="bg-[#18231E] text-white text-[11px] font-medium py-1 px-2.5 rounded-lg shadow-lg whitespace-nowrap">
+                          No unfinished plan in progress. Click "Start Relocation Plan" to begin.
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Micro-copy matching reference ("No credit card required") */}
+                <div className="text-[11px] font-medium text-[#5F6A63] flex flex-wrap items-center gap-x-2 gap-y-1">
+                  <span>Free for Indian tech professionals</span>
+                  <span>·</span>
+                  <span>No account or credit card required</span>
+                  <span>·</span>
+                  <span className="text-[#176B50] font-semibold">Immediate precision breakdown</span>
+                </div>
+              </div>
+
+              {/* Quick Origin & Destination Route Capsule */}
+              <div className="pt-2">
+                <div className="inline-flex flex-col sm:flex-row items-stretch sm:items-center bg-white/95 backdrop-blur-md p-2 rounded-2xl border border-[#18231E]/15 shadow-2xs gap-2 max-w-xl w-full">
+                  <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-[#F8F9F7] border border-[#E5EAE5] flex-1 min-w-0">
+                    <MapPin className="w-3.5 h-3.5 text-[#5F6A63] shrink-0" />
+                    <span className="text-xs font-medium text-[#18231E] truncate">
+                      From: <span className="font-semibold">{state.from || "Lucknow"}</span>
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-[#F8F9F7] border border-[#E5EAE5] flex-1 min-w-0">
+                    <Navigation className="w-3.5 h-3.5 text-[#176B50] shrink-0" />
+                    <span className="text-xs font-medium text-[#18231E] truncate">
+                      To: <span className="font-semibold">{CITIES[state.city]?.name || "Bengaluru"}</span> {state.wp ? `(${state.wp.name})` : "(All Hubs)"}
+                    </span>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleStartNew}
+                    className="h-9 px-3.5 rounded-xl bg-[#176B50] hover:bg-[#125740] text-white text-xs font-semibold flex items-center justify-center shrink-0 shadow-2xs transition-transform active:scale-95 gap-1.5 cursor-pointer"
+                    title="Start relocation plan for this route"
+                  >
+                    <span>Explore</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* RIGHT COLUMN: The Editorial Risograph Illustration & Floating Badges */}
+            <div className="lg:col-span-5 relative flex items-center justify-center">
+              {/* Decorative Floating Asterisks & Accents matching reference */}
+              <div className="absolute -top-3 -left-2 text-[#18231E] text-2xl font-serif select-none pointer-events-none hidden sm:block">
+                ✶
+              </div>
+              <div className="absolute top-10 -right-3 text-[#176B50] text-3xl font-serif select-none pointer-events-none hidden sm:block">
+                ✦
+              </div>
+              <div className="absolute -bottom-2 left-6 text-[#18231E]/40 text-xl font-mono select-none pointer-events-none hidden sm:block">
+                +
+              </div>
+
+              {/* Illustration Container */}
+              <div className="relative w-full max-w-[440px] mx-auto rounded-3xl overflow-hidden border-2 border-[#18231E]/15 bg-[#E7F1EB] shadow-md group">
+                <img
+                  src="/assets/images/worthwhile_hero_character.jpg"
+                  alt="Worthwhile Relocation Intelligence Illustration"
+                  className="w-full h-auto object-cover transition-transform duration-500 group-hover:scale-[1.02]"
+                  loading="eager"
+                  referrerPolicy="no-referrer"
+                />
+
+                {/* Interactive Floating Corridor Tags on the Illustration */}
+                <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between gap-2 p-2.5 rounded-xl bg-white/95 backdrop-blur-md border border-[#18231E]/10 shadow-xs">
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <span className="w-2 h-2 rounded-full bg-[#176B50]" />
+                    <span className="text-[11px] font-bold text-[#18231E] truncate">Bengaluru · ORR Corridor</span>
+                  </div>
+                  <span className="text-[11px] font-mono font-semibold text-[#176B50] shrink-0">~24m commute</span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* Seamless Soft Fade Gradient from Left to Right (Uber Aesthetic) */}
-        <div className="absolute inset-0 z-0 bg-gradient-to-r from-[#F8F9F7] via-[#F8F9F7]/95 via-45% to-transparent pointer-events-none" />
-
-        {/* HERO FOREGROUND CONTENT */}
-        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full flex-1 flex flex-col justify-center gap-8 sm:gap-12 my-auto">
-          <div className="max-w-2xl space-y-4 sm:space-y-6">
-            {/* Pill kicker */}
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/95 backdrop-blur-sm border border-[#E5EAE5] text-xs font-medium text-[#18231E] shadow-xs">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#176B50]" />
-              <span className="text-[#5F6A63]">Map-first relocation intelligence · Worthwhile</span>
-              <span className="font-semibold text-[#18231E]">· BLR & Delhi NCR</span>
-            </div>
-
-            {/* Display Headline */}
-            <h1 className="text-3xl sm:text-5xl lg:text-[60px] font-bold tracking-tight text-[#18231E] font-heading leading-[1.12] sm:leading-[1.06] text-balance">
-              Your next move deserves better decisions.
-            </h1>
-
-            {/* Supporting Copy */}
-            <p className="text-sm sm:text-base lg:text-lg text-[#5F6A63] leading-relaxed max-w-xl">
-              Understand what your salary means in another city. Compare neighbourhoods, estimate living costs and discover how much you could actually save.
-            </p>
-
-            {/* Uber-Inspired Route Capsule Selector Bar */}
-            <div className="inline-flex flex-col sm:flex-row items-stretch sm:items-center bg-white/95 backdrop-blur-md p-2 rounded-2xl border border-[#E5EAE5] shadow-xs gap-2 max-w-2xl w-full">
-              <div className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-[#F8F9F7] border border-[#E5EAE5]/60 flex-1 min-w-0">
-                <MapPin className="w-4 h-4 text-[#5F6A63] shrink-0" />
-                <span className="text-xs font-semibold text-[#18231E] truncate">
-                  From: {state.from || 'Mumbai / Pune'}
-                </span>
-              </div>
-
-              <div className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-[#F8F9F7] border border-[#E5EAE5]/60 flex-1 min-w-0">
-                <Navigation className="w-4 h-4 text-[#176B50] shrink-0" />
-                <span className="text-xs font-semibold text-[#18231E] truncate">
-                  To: {CITIES[state.city].name} ({state.wp ? state.wp.name : 'Choose Hub'})
-                </span>
-              </div>
-
-              <button
-                type="button"
-                onClick={handleStartNew}
-                className="h-11 sm:w-11 sm:h-10 rounded-xl bg-[#176B50] hover:bg-[#125740] text-white flex items-center justify-center shrink-0 shadow-xs transition-transform active:scale-95 gap-2 px-4 sm:px-0 cursor-pointer"
-                title="Start new relocation plan"
-              >
-                <span className="sm:hidden text-xs font-semibold">Start Plan</span>
-                <ArrowRight className="w-4 h-4" />
-              </button>
-            </div>
+        {/* 3-ITEM SOCIAL PROOF / METRIC STRIP (Directly below hero card, matching reference) */}
+        <div className="mt-8 pt-2 pb-2 flex flex-wrap items-center justify-center gap-6 sm:gap-12 text-center">
+          <div className="flex items-center gap-2.5 text-xs sm:text-sm font-semibold text-[#18231E]">
+            <svg className="w-4 h-4 text-[#18231E] shrink-0 fill-current" viewBox="0 0 24 24">
+              <path d="M12 0L14.5 9.5L24 12L14.5 14.5L12 24L9.5 14.5L0 12L9.5 9.5Z" />
+            </svg>
+            <span>14,000+ Relocations Planned</span>
           </div>
 
-          {/* Bottom Floating Telemetry Card (Uber Reference Style) */}
-          <div className="max-w-2xl w-full">
-            <div className="bg-white/95 backdrop-blur-md p-4 sm:p-5 rounded-2xl border border-[#E5EAE5] shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
-              <div className="grid grid-cols-3 gap-2 sm:gap-4 md:gap-5 text-xs w-full md:w-auto">
-                <div className="min-w-0">
-                  <div className="text-[10px] font-bold uppercase tracking-wider text-[#5F6A63] truncate">
-                    Distance
-                  </div>
-                  <div className="text-sm sm:text-base font-bold font-mono text-[#18231E] mt-0.5 truncate">
-                    14.8 KM
-                  </div>
-                </div>
+          <div className="flex items-center gap-2.5 text-xs sm:text-sm font-semibold text-[#18231E]">
+            <svg className="w-4 h-4 text-[#18231E] shrink-0 fill-current" viewBox="0 0 24 24">
+              <path d="M12 0L14.5 9.5L24 12L14.5 14.5L12 24L9.5 14.5L0 12L9.5 9.5Z" />
+            </svg>
+            <span>6 Major Indian Tech Metros</span>
+          </div>
 
-                <div className="border-l border-[#E5EAE5] pl-2.5 sm:pl-4 min-w-0">
-                  <div className="text-[10px] font-bold uppercase tracking-wider text-[#5F6A63] truncate">
-                    Commute
-                  </div>
-                  <div className="text-sm sm:text-base font-bold font-mono text-[#18231E] mt-0.5 truncate">
-                    24 MINS
-                  </div>
-                </div>
-
-                <div className="border-l border-[#E5EAE5] pl-2.5 sm:pl-4 min-w-0">
-                  <div className="text-[10px] font-bold uppercase tracking-wider text-[#176B50] truncate">
-                    Net Surplus
-                  </div>
-                  <div className="text-sm sm:text-base font-bold font-mono text-[#176B50] mt-0.5 truncate">
-                    +₹48.5k<span className="text-[10px] font-normal text-[#5F6A63]">/mo</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Action Buttons: Start Relocation Plan & Resume Plan */}
-              <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 sm:gap-2.5 shrink-0 justify-start md:justify-end">
-                {/* 1. Start Relocation Plan: Always starts fresh from Stage 1 */}
-                <button
-                  type="button"
-                  onClick={handleStartNew}
-                  className="px-4 sm:px-5 py-2.5 rounded-xl text-xs font-semibold text-white bg-[#176B50] hover:bg-[#125740] shadow-xs hover:shadow-sm transition-all active:scale-[0.98] text-center whitespace-nowrap cursor-pointer inline-flex items-center gap-2"
-                >
-                  <span>Start relocation plan</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
-                </button>
-
-                {/* 2. Resume Plan: Resumes unfinished journey if one exists, else gracefully disabled */}
-                {hasUnfinishedPlan ? (
-                  <button
-                    type="button"
-                    onClick={handleResume}
-                    className="px-3.5 sm:px-4 py-2.5 rounded-xl text-xs font-semibold text-[#18231E] bg-[#F8F9F7] border border-[#176B50]/30 hover:border-[#176B50] hover:bg-white transition-all text-center whitespace-nowrap shadow-2xs active:scale-[0.98] cursor-pointer inline-flex items-center gap-2 group"
-                    title="Resume your unfinished relocation journey where you left off"
-                  >
-                    <span className="w-2 h-2 rounded-full bg-[#176B50] animate-pulse shrink-0" />
-                    <span>Resume plan</span>
-                    <span className="text-[10px] font-mono font-medium text-[#176B50] bg-[#176B50]/10 px-1.5 py-0.5 rounded-md group-hover:bg-[#176B50]/15 transition-colors">
-                      {state.flowPhase === 'workplace_select'
-                        ? 'Stage 2'
-                        : state.flowPhase === 'onboarding'
-                        ? 'Stage 1'
-                        : `Stage ${state.st + 1}`}
-                    </span>
-                  </button>
-                ) : (
-                  <div className="relative group inline-block">
-                    <button
-                      type="button"
-                      disabled
-                      aria-disabled="true"
-                      className="px-3.5 sm:px-4 py-2.5 rounded-xl text-xs font-medium text-[#5F6A63]/50 bg-neutral-100 border border-neutral-200/80 cursor-not-allowed text-center whitespace-nowrap shadow-none select-none inline-flex items-center gap-2"
-                    >
-                      <span className="w-1.5 h-1.5 rounded-full bg-neutral-300 shrink-0" />
-                      <span>Resume plan</span>
-                    </button>
-                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-30 pointer-events-none">
-                      <div className="bg-[#18231E] text-white text-[11px] font-medium py-1 px-2.5 rounded-lg shadow-lg whitespace-nowrap">
-                        No unfinished plan in progress. Click 'Start relocation plan' to begin.
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
+          <div className="flex items-center gap-2.5 text-xs sm:text-sm font-semibold text-[#18231E]">
+            <svg className="w-4 h-4 text-[#18231E] shrink-0 fill-current" viewBox="0 0 24 24">
+              <path d="M12 0L14.5 9.5L24 12L14.5 14.5L12 24L9.5 14.5L0 12L9.5 9.5Z" />
+            </svg>
+            <span>Free & Independent Benchmarks</span>
           </div>
         </div>
       </section>
