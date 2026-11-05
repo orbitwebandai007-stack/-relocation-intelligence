@@ -39,15 +39,23 @@ import {
 
 interface LandingPageProps {
   state: RelocationState;
-  onStartPlanning: () => void;
-  onResumePlanning: () => void;
+  hasUnfinishedPlan?: boolean;
+  onStartNewPlan?: () => void;
+  onResumePlan?: () => void;
+  onStartPlanning?: () => void;
+  onResumePlanning?: () => void;
 }
 
 export const LandingPage: React.FC<LandingPageProps> = ({
   state,
+  hasUnfinishedPlan = false,
+  onStartNewPlan,
+  onResumePlan,
   onStartPlanning,
   onResumePlanning,
 }) => {
+  const handleStartNew = onStartNewPlan || onStartPlanning || (() => {});
+  const handleResume = onResumePlan || onResumePlanning || (() => {});
   const [selectedCityTab, setSelectedCityTab] = useState<'blr' | 'ncr'>('blr');
 
   // Interactive showcase areas for Bengaluru & Delhi NCR
@@ -295,9 +303,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 
               <button
                 type="button"
-                onClick={onStartPlanning}
-                className="h-11 sm:w-11 sm:h-10 rounded-xl bg-[#176B50] hover:bg-[#125740] text-white flex items-center justify-center shrink-0 shadow-xs transition-transform active:scale-95 gap-2 px-4 sm:px-0"
-                title="Start Planning"
+                onClick={handleStartNew}
+                className="h-11 sm:w-11 sm:h-10 rounded-xl bg-[#176B50] hover:bg-[#125740] text-white flex items-center justify-center shrink-0 shadow-xs transition-transform active:scale-95 gap-2 px-4 sm:px-0 cursor-pointer"
+                title="Start new relocation plan"
               >
                 <span className="sm:hidden text-xs font-semibold">Start Plan</span>
                 <ArrowRight className="w-4 h-4" />
@@ -337,24 +345,53 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 </div>
               </div>
 
-              {/* Action Buttons */}
+              {/* Action Buttons: Start Relocation Plan & Resume Plan */}
               <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 sm:gap-2.5 shrink-0 justify-start md:justify-end">
+                {/* 1. Start Relocation Plan: Always starts fresh from Stage 1 */}
                 <button
                   type="button"
-                  onClick={onStartPlanning}
-                  className="px-4 sm:px-5 py-2.5 rounded-xl text-xs font-semibold text-white bg-[#176B50] hover:bg-[#125740] shadow-xs transition-all active:scale-[0.98] text-center whitespace-nowrap"
+                  onClick={handleStartNew}
+                  className="px-4 sm:px-5 py-2.5 rounded-xl text-xs font-semibold text-white bg-[#176B50] hover:bg-[#125740] shadow-xs hover:shadow-sm transition-all active:scale-[0.98] text-center whitespace-nowrap cursor-pointer inline-flex items-center gap-2"
                 >
-                  Start relocation plan
+                  <span>Start relocation plan</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
                 </button>
 
-                {state.max > 0 && (
+                {/* 2. Resume Plan: Resumes unfinished journey if one exists, else gracefully disabled */}
+                {hasUnfinishedPlan ? (
                   <button
                     type="button"
-                    onClick={onResumePlanning}
-                    className="px-3.5 sm:px-4 py-2.5 rounded-xl text-xs font-semibold text-[#18231E] bg-[#F8F9F7] border border-[#E5EAE5] hover:bg-neutral-100 transition-colors text-center whitespace-nowrap shadow-2xs"
+                    onClick={handleResume}
+                    className="px-3.5 sm:px-4 py-2.5 rounded-xl text-xs font-semibold text-[#18231E] bg-[#F8F9F7] border border-[#176B50]/30 hover:border-[#176B50] hover:bg-white transition-all text-center whitespace-nowrap shadow-2xs active:scale-[0.98] cursor-pointer inline-flex items-center gap-2 group"
+                    title="Resume your unfinished relocation journey where you left off"
                   >
-                    Resume plan
+                    <span className="w-2 h-2 rounded-full bg-[#176B50] animate-pulse shrink-0" />
+                    <span>Resume plan</span>
+                    <span className="text-[10px] font-mono font-medium text-[#176B50] bg-[#176B50]/10 px-1.5 py-0.5 rounded-md group-hover:bg-[#176B50]/15 transition-colors">
+                      {state.flowPhase === 'workplace_select'
+                        ? 'Stage 2'
+                        : state.flowPhase === 'onboarding'
+                        ? 'Stage 1'
+                        : `Stage ${state.st + 1}`}
+                    </span>
                   </button>
+                ) : (
+                  <div className="relative group inline-block">
+                    <button
+                      type="button"
+                      disabled
+                      aria-disabled="true"
+                      className="px-3.5 sm:px-4 py-2.5 rounded-xl text-xs font-medium text-[#5F6A63]/50 bg-neutral-100 border border-neutral-200/80 cursor-not-allowed text-center whitespace-nowrap shadow-none select-none inline-flex items-center gap-2"
+                    >
+                      <span className="w-1.5 h-1.5 rounded-full bg-neutral-300 shrink-0" />
+                      <span>Resume plan</span>
+                    </button>
+                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-30 pointer-events-none">
+                      <div className="bg-[#18231E] text-white text-[11px] font-medium py-1 px-2.5 rounded-lg shadow-lg whitespace-nowrap">
+                        No unfinished plan in progress. Click 'Start relocation plan' to begin.
+                      </div>
+                    </div>
+                  </div>
                 )}
               </div>
             </div>
@@ -775,8 +812,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               <div className="border border-[#E5EAE5] bg-[#FBFDFB] p-3.5 space-y-2 mt-2">
                 <button
                   type="button"
-                  onClick={onStartPlanning}
-                  className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold text-white bg-[#176B50] hover:bg-[#125740] shadow-xs transition-colors"
+                  onClick={handleStartNew}
+                  className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold text-white bg-[#176B50] hover:bg-[#125740] shadow-xs transition-colors cursor-pointer"
                 >
                   <span>Run Compensation Audit</span>
                   <ArrowRight className="w-3.5 h-3.5" />

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   MapPin,
@@ -55,6 +55,16 @@ export const OnboardingExperience: React.FC<OnboardingExperienceProps> = ({
   const [customMonthly, setCustomMonthly] = useState<number>(state.sal || 115000);
   const [isEditingMonthly, setIsEditingMonthly] = useState(false);
   const [formError, setFormError] = useState('');
+
+  // Synchronize when a new journey starts or state is reset
+  useEffect(() => {
+    setFromCity(state.from || 'Lucknow');
+    setDestCity(state.city || 'blr');
+    setLpa(state.annualLpa || 18);
+    setCustomMonthly(state.sal || 115000);
+    setIsEditingMonthly(false);
+    setFormError('');
+  }, [state.journeyStartedAt, state.from, state.city, state.annualLpa, state.sal]);
 
   // Phase 2 Workplace Search State
   const [workplaceSearch, setWorkplaceSearch] = useState('');

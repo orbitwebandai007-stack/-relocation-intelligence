@@ -2,11 +2,13 @@ import React from 'react';
 import { ArrowRight, Compass, ShieldCheck } from 'lucide-react';
 
 interface FooterProps {
+  onStartNewPlan?: () => void;
   onStartPlanning?: () => void;
   onReset?: () => void;
 }
 
-export const Footer: React.FC<FooterProps> = ({ onStartPlanning }) => {
+export const Footer: React.FC<FooterProps> = ({ onStartNewPlan, onStartPlanning }) => {
+  const handleStart = onStartNewPlan || onStartPlanning;
   return (
     <footer className="relative bg-[#0F3020] text-white pt-16 sm:pt-20 pb-0 overflow-hidden no-print selection:bg-[#C8E6A0]/20 selection:text-[#C8E6A0]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
@@ -50,7 +52,7 @@ export const Footer: React.FC<FooterProps> = ({ onStartPlanning }) => {
               <li>
                 <button
                   type="button"
-                  onClick={onStartPlanning}
+                  onClick={handleStart}
                   className="hover:text-white transition-colors text-left"
                 >
                   Relocation Planner

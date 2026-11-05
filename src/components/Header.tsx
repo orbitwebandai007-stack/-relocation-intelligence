@@ -11,8 +11,11 @@ interface HeaderProps {
   currentStep: number;
   maxStep?: number;
   isLanding: boolean;
+  hasUnfinishedPlan?: boolean;
   onGoLanding: () => void;
   onGoStep?: (step: number) => void;
+  onStartNewPlan?: () => void;
+  onResumePlan?: () => void;
   onSelectCity?: (cityKey: CityKey) => void;
   onReset: () => void;
 }
@@ -22,8 +25,11 @@ export const Header: React.FC<HeaderProps> = ({
   currentStep,
   maxStep = 0,
   isLanding,
+  hasUnfinishedPlan = false,
   onGoLanding,
   onGoStep,
+  onStartNewPlan,
+  onResumePlan,
   onSelectCity,
   onReset,
 }) => {
@@ -212,20 +218,21 @@ export const Header: React.FC<HeaderProps> = ({
           ) : (
             <>
               {/* Landing Page Action: Resume if started, else Start */}
-              {maxStep > 0 && (
+              {hasUnfinishedPlan && (
                 <button
                   type="button"
-                  onClick={() => onGoStep?.(currentStep)}
-                  className="hidden sm:inline-block px-4 py-2 rounded-full text-xs font-semibold text-[#18231E] bg-white/90 hover:bg-white backdrop-blur-md border border-[#E5EAE5] shadow-xs transition-all"
+                  onClick={onResumePlan || (() => onGoStep?.(currentStep))}
+                  className="hidden sm:inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-semibold text-[#18231E] bg-white/90 hover:bg-white backdrop-blur-md border border-[#176B50]/30 hover:border-[#176B50] shadow-xs transition-all cursor-pointer"
                 >
-                  Resume Plan
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#176B50] animate-pulse" />
+                  <span>Resume Plan</span>
                 </button>
               )}
 
               <button
-                onClick={() => onGoStep?.(0)}
+                onClick={onStartNewPlan || (() => onGoStep?.(0))}
                 type="button"
-                className="inline-flex items-center gap-1.5 px-4 sm:px-5 py-2 sm:py-2.5 rounded-full text-xs font-semibold text-white bg-[#176B50] hover:bg-[#125740] shadow-sm hover:shadow-md transition-all active:scale-95 duration-150"
+                className="inline-flex items-center gap-1.5 px-4 sm:px-5 py-2 sm:py-2.5 rounded-full text-xs font-semibold text-white bg-[#176B50] hover:bg-[#125740] shadow-sm hover:shadow-md transition-all active:scale-95 duration-150 cursor-pointer"
               >
                 <span>Start Planning</span>
                 <ArrowRight className="w-3.5 h-3.5" />

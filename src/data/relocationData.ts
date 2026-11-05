@@ -358,7 +358,7 @@ export const EXPENSE_CATEGORIES: Record<ExpenseCategory, string> = {
 };
 
 export const INITIAL_STATE: RelocationState = {
-  v: 'step',
+  v: 'land',
   st: 0,
   max: 0,
   tab: 'rep',
@@ -384,6 +384,46 @@ export const INITIAL_STATE: RelocationState = {
   f: { r: '', c: '', a: '', q: '' },
   from: 'Lucknow',
 };
+
+export const createFreshJourney = (): RelocationState => ({
+  ...INITIAL_STATE,
+  v: 'step',
+  st: 0,
+  max: 0,
+  tab: 'rep',
+  city: 'blr',
+  wp: null,
+  wpConfirmed: false,
+  flowPhase: 'onboarding',
+  annualLpa: 18,
+  sal: 115000,
+  currentSal: 80000,
+  currentExpenses: 42000,
+  tgt: 30000,
+  tm: 'target',
+  com: 0,
+  acc: 'alone',
+  prop: 'b1',
+  food: 'mix',
+  tr: 'combo',
+  life: 'mod',
+  maxc: 35,
+  sel: [],
+  ov: {},
+  f: { r: '', c: '', a: '', q: '' },
+  from: 'Lucknow',
+  depositMonthsOverride: undefined,
+  brokerageOverride: undefined,
+  moversOverride: undefined,
+  setupOverride: undefined,
+  utilityDepositOverride: undefined,
+  travelTransitOverride: undefined,
+  availableSavings: undefined,
+  investmentReturnRate: undefined,
+  journeyStartedAt: Date.now(),
+  isCompleted: false,
+});
+
 
 // Utilities
 export const formatINR = (n: number): string => {

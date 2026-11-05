@@ -297,4 +297,6 @@ export interface RelocationState {
   flowPhase?: 'onboarding' | 'workplace_select' | 'recommendations';
   wpConfirmed?: boolean;
   annualLpa?: number;
+  journeyStartedAt?: number;
+  isCompleted?: boolean;
 }

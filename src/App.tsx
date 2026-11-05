@@ -3,6 +3,7 @@ import { CityKey, MapLayersState, RelocationState, ScoredNeighbourhood, Workplac
 import {
   CITIES,
   INITIAL_STATE,
+  createFreshJourney,
   calculateNeighbourhoods,
   getChosenNeighbourhood,
 } from './data/relocationData';
@@ -18,7 +19,7 @@ import { Compass, Edit3 } from 'lucide-react';
 export default function App() {
   const [state, setState] = useState<RelocationState>(() => {
     try {
-      const stored = localStorage.getItem('ri_v2');
+      const stored = localStorage.getItem('ri_active_journey') || localStorage.getItem('ri_v2');
       if (stored) {
         return { ...INITIAL_STATE, ...JSON.parse(stored) };
       }
@@ -31,9 +32,13 @@ export default function App() {
   // Candidate workplace for Phase 2 selection before user confirmation
   const [candidateWp, setCandidateWp] = useState<WorkplaceHub | null>(null);
 
+  // In-memory route dictionary for OSRM driving routes
+  const [routeMap, setRouteMap] = useState<Map<string, RouteInfo>>(new Map());
+
   // Save state to localStorage on state changes
   useEffect(() => {
     try {
+      localStorage.setItem('ri_active_journey', JSON.stringify(state));
       localStorage.setItem('ri_v2', JSON.stringify(state));
     } catch (e) {
       console.warn('LocalStorage save failed', e);
@@ -56,19 +61,103 @@ export default function App() {
     }));
   };
 
+  // Safely archive an existing completed or in-progress plan to prevent unintended data loss
+  const archiveCompletedReport = (prevJourney: RelocationState) => {
+    try {
+      if (
+        prevJourney.wpConfirmed ||
+        prevJourney.st > 0 ||
+        (prevJourney.sel && prevJourney.sel.length > 0) ||
+        prevJourney.journeyStartedAt
+      ) {
+        const existingReportsStr = localStorage.getItem('ri_completed_reports');
+        const existingReports = existingReportsStr ? JSON.parse(existingReportsStr) : [];
+        const cityData = CITIES[prevJourney.city] || CITIES.blr;
+        const reportArchive = {
+          id: `report_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+          archivedAt: new Date().toISOString(),
+          origin: prevJourney.from,
+          city: cityData.name,
+          cityKey: prevJourney.city,
+          workplace: prevJourney.wp?.name || 'Unspecified',
+          annualLpa: prevJourney.annualLpa,
+          inHandSalary: prevJourney.sal,
+          finalStep: prevJourney.st,
+          isCompleted: prevJourney.isCompleted || prevJourney.st === 5,
+          stateSnapshot: prevJourney,
+        };
+        localStorage.setItem(
+          'ri_completed_reports',
+          JSON.stringify([reportArchive, ...existingReports.slice(0, 9)])
+        );
+      }
+    } catch (e) {
+      console.warn('Failed to archive historical relocation report', e);
+    }
+  };
+
+  // Accurately determine whether an unfinished journey exists
+  const hasUnfinishedPlan = useMemo(() => {
+    if (state.wpConfirmed) return true;
+    if (state.flowPhase === 'workplace_select') return true;
+    if (state.st > 0) return true;
+    if (state.sel && state.sel.length > 0) return true;
+    if (state.journeyStartedAt && !state.isCompleted) return true;
+    return false;
+  }, [
+    state.wpConfirmed,
+    state.flowPhase,
+    state.st,
+    state.sel,
+    state.journeyStartedAt,
+    state.isCompleted,
+  ]);
+
+  // 1. Start Relocation Plan: Always initiate a completely fresh relocation journey from Stage 1
+  const handleStartNewPlan = () => {
+    // Preserve any existing journey into historical reports before wiping active session
+    if (hasUnfinishedPlan) {
+      archiveCompletedReport(state);
+    }
+
+    const fresh = createFreshJourney();
+    setCandidateWp(null);
+    setRouteMap(new Map());
+    setState(fresh);
+    setIsPanelVisible(true);
+  };
+
+  // 2. Resume Plan: Resume the user's most recent unfinished relocation journey
+  const handleResumePlan = () => {
+    if (!hasUnfinishedPlan) return;
+
+    const targetFlow = state.flowPhase || (state.wpConfirmed ? 'recommendations' : 'onboarding');
+    setState((prev) => ({
+      ...prev,
+      v: 'step',
+      flowPhase: targetFlow,
+      st: prev.st,
+    }));
+    setIsPanelVisible(true);
+  };
+
   const handleReset = () => {
     if (confirm('Reset your relocation plan to initial defaults?')) {
-      setState(INITIAL_STATE);
+      const resetState: RelocationState = {
+        ...INITIAL_STATE,
+        v: 'land',
+        journeyStartedAt: undefined,
+        isCompleted: false,
+      };
+      setState(resetState);
       setCandidateWp(null);
       setRouteMap(new Map());
       try {
+        localStorage.removeItem('ri_active_journey');
         localStorage.removeItem('ri_v2');
       } catch (e) {}
     }
   };
-
-  // In-memory route dictionary for OSRM driving routes
-  const [routeMap, setRouteMap] = useState<Map<string, RouteInfo>>(new Map());
 
   const handleRouteLoaded = (areaName: string, route: RouteInfo) => {
     setRouteMap((prev) => {
@@ -259,8 +348,11 @@ export default function App() {
         currentStep={state.st}
         maxStep={state.max}
         isLanding={isLanding}
+        hasUnfinishedPlan={hasUnfinishedPlan}
         onGoLanding={() => updateState({ v: 'land' })}
         onGoStep={goToStep}
+        onStartNewPlan={handleStartNewPlan}
+        onResumePlan={handleResumePlan}
         onSelectCity={handleSelectCity}
         onReset={handleReset}
       />
@@ -271,23 +363,16 @@ export default function App() {
         <main className="flex-1 w-full mx-auto">
           <LandingPage
             state={state}
-            onStartPlanning={() => {
-              updateState({
-                v: 'step',
-                flowPhase: state.wpConfirmed ? 'recommendations' : 'onboarding',
-              });
-            }}
-            onResumePlanning={() => goToStep(state.st)}
+            hasUnfinishedPlan={hasUnfinishedPlan}
+            onStartNewPlan={handleStartNewPlan}
+            onResumePlan={handleResumePlan}
+            onStartPlanning={handleStartNewPlan}
+            onResumePlanning={handleResumePlan}
           />
 
           {/* Minimal SaaS Style Footer */}
           <Footer
-            onStartPlanning={() => {
-              updateState({
-                v: 'step',
-                flowPhase: state.wpConfirmed ? 'recommendations' : 'onboarding',
-              });
-            }}
+            onStartNewPlan={handleStartNewPlan}
             onReset={handleReset}
           />
         </main>
@@ -328,6 +413,7 @@ export default function App() {
           {/* 3A. FLOATING ONBOARDING / WORKPLACE SELECTION CARDS */}
           {flowPhase !== 'recommendations' && (
             <OnboardingExperience
+              key={state.journeyStartedAt || 'active'}
               state={state}
               candidateWp={candidateWp}
               onSelectCandidateWp={(wp) => setCandidateWp(wp)}
