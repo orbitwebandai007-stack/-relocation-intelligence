@@ -82,6 +82,7 @@ export const MapComponent: React.FC<MapComponentProps> = ({
   const [mapLoaded, setMapLoaded] = useState(false);
   const [activeRoute, setActiveRoute] = useState<RouteInfo | null>(null);
   const [isRoutingLoading, setIsRoutingLoading] = useState(false);
+  const [mapZoom, setMapZoom] = useState(12);
 
   // Initialize MapLibre GL map
   useEffect(() => {
@@ -193,12 +194,18 @@ export const MapComponent: React.FC<MapComponentProps> = ({
     };
     window.addEventListener('resize', handleResize);
 
+    const handleZoomEnd = () => {
+      setMapZoom(map.getZoom());
+    };
+    map.on('zoomend', handleZoomEnd);
+
     const resizeTimer = setTimeout(() => {
       map.resize();
     }, 200);
 
     return () => {
       window.removeEventListener('resize', handleResize);
+      map.off('zoomend', handleZoomEnd);
       clearTimeout(resizeTimer);
       markersRef.current.forEach((m) => m.remove());
       markersRef.current = [];
@@ -539,44 +546,281 @@ export const MapComponent: React.FC<MapComponentProps> = ({
       return;
     }
 
-    // PHASE 3: Recommendations Phase - Render Full Markers
-    // 1. Confirmed Workplace Marker
-    if (layers.w && workplace) {
-      const officeContainer = document.createElement('div');
-      officeContainer.className = 'relative flex items-center justify-center cursor-pointer';
+    // Helper to generate the structured corridor match popup card
+    const renderPopupCardHtml = (
+      q: ScoredNeighbourhood,
+      index: number,
+      propertyType: PropertyType
+    ): string => {
+      const badgeColorMap: Record<string, string> = {
+        'BEST FIT': 'bg-[#E8F4EF] text-[#176B50] border border-[#176B50]/20',
+        'BEST SAVINGS': 'bg-[#E8F4EF] text-[#176B50] border border-[#176B50]/20',
+        'LOWEST RENT': 'bg-blue-50 text-blue-700 border border-blue-200',
+        'SHORTEST COMMUTE': 'bg-blue-50 text-blue-700 border border-blue-200',
+        'GOOD ALTERNATIVE': 'bg-neutral-100 text-neutral-700 border border-neutral-200',
+        'OVER BUDGET': 'bg-rose-50 text-[#BE123C] border border-rose-200',
+        'LONG COMMUTE': 'bg-amber-50 text-amber-800 border border-amber-200',
+      };
+      const badgeColor =
+        badgeColorMap[q.badge] || 'bg-neutral-100 text-neutral-700 border border-neutral-200';
 
-      // Pulsing concentric radar ring
-      const radar = document.createElement('div');
-      radar.className = 'radar-ring';
-      officeContainer.appendChild(radar);
+      const roadKmDisplay =
+        q.roadKm !== null && q.roadKm !== undefined
+          ? `${q.roadKm} km road`
+          : 'Modeled road';
+      const straightKmDisplay = `${q.straightLineKm} km straight-line`;
+      const peakMinDisplay =
+        q.peakMin !== null && q.peakMin !== undefined
+          ? `~${q.peakMin} min peak`
+          : `~${q.drivingMin} min`;
+      const baselineMinDisplay =
+        q.baselineMin !== null && q.baselineMin !== undefined
+          ? `~${q.baselineMin} min off-peak`
+          : '';
 
-      // Office badge label with distinct obsidian badge & building icon
-      const officeEl = document.createElement('div');
-      officeEl.className = 'custom-office-marker';
-      officeEl.innerHTML = `
-        <span class="custom-office-icon-badge">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="4" y="2" width="16" height="20" rx="2" ry="2"></rect>
-            <path d="M9 22v-4h6v4"></path>
-            <path d="M8 6h.01"></path>
-            <path d="M16 6h.01"></path>
-            <path d="M8 10h.01"></path>
-            <path d="M16 10h.01"></path>
-          </svg>
-        </span>
-        <span class="text-[10px] font-mono uppercase tracking-wider text-[#C8E6A0] font-bold">Office:</span>
-        <span class="font-bold text-white tracking-tight">${workplace.name}</span>
+      return `
+        <div class="p-4 sm:p-5 text-[#18231E] font-sans w-[310px] sm:w-[340px] max-w-[88vw] select-none box-border">
+          <!-- Header with Corridor Name and Unclipped Status Badge -->
+          <div class="flex items-start justify-between gap-2.5 pb-3 border-b border-[#E5EAE5]">
+            <div class="min-w-0 flex-1 pr-1">
+              <span class="text-[10px] font-mono font-bold uppercase tracking-wider text-[#176B50] block truncate">
+                Corridor Match · Rank #${index + 1}
+              </span>
+              <h4 class="font-heading font-bold text-base text-[#18231E] leading-snug truncate mt-0.5" title="${q.a[0]}">
+                ${q.a[0]}
+              </h4>
+            </div>
+            <span class="inline-flex items-center justify-center px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider leading-none whitespace-nowrap shrink-0 shadow-2xs ${badgeColor}">
+              ${q.badge}
+            </span>
+          </div>
+
+          <!-- Structured Cost & Commute Metrics -->
+          <div class="py-3 space-y-2.5 text-xs">
+            <div class="flex items-center justify-between gap-2">
+              <span class="text-[#5F6A63] shrink-0">${PROPERTIES[propertyType][0]} Rent:</span>
+              <span class="font-bold font-mono text-sm text-[#18231E] shrink-0 whitespace-nowrap">
+                ${formatINR(q.x.e.rent)}<span class="text-[10px] font-normal text-[#5F6A63]">/mo</span>
+              </span>
+            </div>
+
+            <div class="flex items-center justify-between gap-2">
+              <span class="text-[#5F6A63] shrink-0">Estimated Commute:</span>
+              <div class="text-right shrink-0 whitespace-nowrap">
+                <span class="font-bold font-mono text-sm text-[#176B50]">${peakMinDisplay}</span>
+                ${
+                  baselineMinDisplay
+                    ? `<span class="block text-[10px] font-mono text-[#5F6A63]">(${baselineMinDisplay})</span>`
+                    : ''
+                }
+              </div>
+            </div>
+
+            <div class="flex items-center justify-between gap-2">
+              <span class="text-[#5F6A63] shrink-0">Road Network Distance:</span>
+              <div class="text-right font-mono shrink-0 whitespace-nowrap">
+                <span class="font-bold text-[#18231E]">${roadKmDisplay}</span>
+                <span class="text-[10px] text-[#5F6A63] block">(${straightKmDisplay})</span>
+              </div>
+            </div>
+
+            <div class="flex items-center justify-between gap-2 pt-2 border-t border-[#E5EAE5]/60">
+              <span class="text-[#5F6A63] shrink-0">Upfront Deposit (Refundable):</span>
+              <span class="font-mono font-bold text-[#18231E] shrink-0 whitespace-nowrap">${formatINR(q.depositRequired)}</span>
+            </div>
+          </div>
+
+          <!-- Monthly Surplus Callout Banner -->
+          <div class="p-2.5 sm:p-3 rounded-xl bg-[#E8F4EF] border border-[#176B50]/20 flex items-center justify-between gap-2 min-w-0">
+            <span class="text-[11px] font-semibold text-[#176B50] truncate">Monthly Disposable Surplus:</span>
+            <span class="font-mono font-bold text-xs sm:text-sm text-[#176B50] shrink-0 whitespace-nowrap">+${formatINR(q.monthlySurplus)}/mo</span>
+          </div>
+
+          <!-- Footnote -->
+          <div class="mt-2 text-[9px] text-[#5F6A63] italic leading-tight">
+            *Peak commute calibrated for Indian tech corridors; live sensor feed disconnected.
+          </div>
+        </div>
       `;
-      officeContainer.appendChild(officeEl);
+    };
 
-      const officeMarker = new maplibregl.Marker({
-        element: officeContainer,
-        anchor: 'center',
-      })
-        .setLngLat([workplace.lng, workplace.lat])
-        .addTo(map);
+    // PHASE 3: Recommendations Phase - Render Full Markers
+    // Overlap Resolution: Check if workplace marker overlaps with any neighbourhood marker on the current map view
+    let overlappingNeighbourhoodIndex = -1;
+    let overlappingNeighbourhood: ScoredNeighbourhood | null = null;
 
-      markersRef.current.push(officeMarker);
+    if (layers.w && workplace && (layers.n || layers.r)) {
+      try {
+        const wpPoint = map.project([workplace.lng, workplace.lat]);
+
+        // Prioritize currently selected neighbourhood if it overlaps
+        const selectedIndex = neighbourhoods.findIndex(
+          (n) => n.i === selectedId && n.vis
+        );
+        if (selectedIndex !== -1) {
+          const selNeighbourhood = neighbourhoods[selectedIndex];
+          const nPoint = map.project([
+            selNeighbourhood.a[2],
+            selNeighbourhood.a[1],
+          ]);
+          const dx = Math.abs(wpPoint.x - nPoint.x);
+          const dy = Math.abs(wpPoint.y - nPoint.y);
+          // Pills are ~140px wide and ~34px high: overlap if dx < 130px and dy < 38px, or Euclidean distance < 110px
+          if ((dx < 130 && dy < 38) || Math.hypot(dx, dy) < 110) {
+            overlappingNeighbourhoodIndex = selectedIndex;
+            overlappingNeighbourhood = selNeighbourhood;
+          }
+        }
+
+        // If selected neighbourhood doesn't overlap, check closest visible neighbourhood
+        if (!overlappingNeighbourhood) {
+          let closestDist = Infinity;
+          neighbourhoods.forEach((q, idx) => {
+            if (!q.vis) return;
+            const nPoint = map.project([q.a[2], q.a[1]]);
+            const dx = Math.abs(wpPoint.x - nPoint.x);
+            const dy = Math.abs(wpPoint.y - nPoint.y);
+            const dist = Math.hypot(dx, dy);
+            if (((dx < 130 && dy < 38) || dist < 110) && dist < closestDist) {
+              closestDist = dist;
+              overlappingNeighbourhoodIndex = idx;
+              overlappingNeighbourhood = q;
+            }
+          });
+        }
+      } catch (err) {
+        // Safe fallback if projection is unavailable during initial setup
+      }
+    }
+
+    // 1. Confirmed Workplace Marker OR Combined Double Pill (if overlapping)
+    if (layers.w && workplace) {
+      if (overlappingNeighbourhood) {
+        // In case of overlap, combine the office pill and the neighbourhood pill into a unified Double Pill!
+        const targetNeighbourhood = overlappingNeighbourhood;
+        const targetIndex = overlappingNeighbourhoodIndex;
+
+        const doubleContainer = document.createElement('div');
+        doubleContainer.className = 'relative flex items-center justify-center cursor-pointer';
+
+        // Pulsing radar ring
+        const radar = document.createElement('div');
+        radar.className = 'radar-ring';
+        doubleContainer.appendChild(radar);
+
+        const isSelected = selectedId === targetNeighbourhood.i;
+        const isShortlisted = shortlist.includes(targetNeighbourhood.i);
+        const rentK = Math.round(targetNeighbourhood.x.e.rent / 1000);
+        const badgeModifier =
+          targetNeighbourhood.g === 0
+            ? ''
+            : targetNeighbourhood.g === 1
+            ? 'is-consider'
+            : 'is-stretch';
+
+        const doublePillEl = document.createElement('div');
+        doublePillEl.className = `custom-double-pill ${
+          isSelected ? 'is-active' : ''
+        } ${isShortlisted ? 'is-shortlisted' : ''}`;
+        doublePillEl.innerHTML = `
+          <!-- Office Segment (Always Visible) -->
+          <div class="custom-double-pill-office" title="Target Workplace: ${workplace.name}">
+            <span class="custom-office-icon-badge">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="4" y="2" width="16" height="20" rx="2" ry="2"></rect>
+                <path d="M9 22v-4h6v4"></path>
+                <path d="M8 6h.01"></path>
+                <path d="M16 6h.01"></path>
+                <path d="M8 10h.01"></path>
+                <path d="M16 10h.01"></path>
+              </svg>
+            </span>
+            <span class="text-[10px] font-mono uppercase tracking-wider text-[#C8E6A0] font-bold hidden sm:inline">Office:</span>
+            <span class="font-bold text-white tracking-tight max-w-[100px] sm:max-w-[130px] truncate">${workplace.name}</span>
+          </div>
+
+          <!-- Locality Segment -->
+          <div class="custom-double-pill-locality" title="${targetNeighbourhood.a[0]} (Rank #${targetIndex + 1})">
+            <span class="locality-marker-badge ${badgeModifier}">${targetIndex + 1}</span>
+            <span class="locality-marker-name font-bold text-xs max-w-[95px] sm:max-w-[125px] truncate">${targetNeighbourhood.a[0].split(' ·')[0]}</span>
+            ${layers.r ? `<span class="locality-marker-rent">₹${rentK}k</span>` : ''}
+          </div>
+        `;
+
+        doubleContainer.appendChild(doublePillEl);
+
+        doubleContainer.addEventListener('click', (e) => {
+          e.stopPropagation();
+          onSelectNeighbourhood(targetNeighbourhood.i);
+        });
+
+        const doubleMarker = new maplibregl.Marker({
+          element: doubleContainer,
+          anchor: 'center',
+        })
+          .setLngLat([workplace.lng, workplace.lat])
+          .addTo(map);
+
+        markersRef.current.push(doubleMarker);
+
+        // If the overlapping neighbourhood is selected, open its popup right above the double pill
+        if (isSelected) {
+          popupRef.current = new maplibregl.Popup({
+            closeButton: false,
+            closeOnClick: false,
+            offset: 20,
+            anchor: 'bottom',
+            className: 'custom-map-popup',
+            maxWidth: 'none',
+          })
+            .setLngLat([workplace.lng, workplace.lat])
+            .setHTML(
+              renderPopupCardHtml(
+                targetNeighbourhood,
+                targetIndex,
+                propType
+              )
+            )
+            .addTo(map);
+        }
+      } else {
+        // No overlap: Render standard standalone Office Marker
+        const officeContainer = document.createElement('div');
+        officeContainer.className = 'relative flex items-center justify-center cursor-pointer';
+
+        // Pulsing concentric radar ring
+        const radar = document.createElement('div');
+        radar.className = 'radar-ring';
+        officeContainer.appendChild(radar);
+
+        // Office badge label with distinct obsidian badge & building icon
+        const officeEl = document.createElement('div');
+        officeEl.className = 'custom-office-marker';
+        officeEl.innerHTML = `
+          <span class="custom-office-icon-badge">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="4" y="2" width="16" height="20" rx="2" ry="2"></rect>
+              <path d="M9 22v-4h6v4"></path>
+              <path d="M8 6h.01"></path>
+              <path d="M16 6h.01"></path>
+              <path d="M8 10h.01"></path>
+              <path d="M16 10h.01"></path>
+            </svg>
+          </span>
+          <span class="text-[10px] font-mono uppercase tracking-wider text-[#C8E6A0] font-bold">Office:</span>
+          <span class="font-bold text-white tracking-tight">${workplace.name}</span>
+        `;
+        officeContainer.appendChild(officeEl);
+
+        const officeMarker = new maplibregl.Marker({
+          element: officeContainer,
+          anchor: 'center',
+        })
+          .setLngLat([workplace.lng, workplace.lat])
+          .addTo(map);
+
+        markersRef.current.push(officeMarker);
+      }
     }
 
     // 2. Transit Stations
@@ -602,6 +846,9 @@ export const MapComponent: React.FC<MapComponentProps> = ({
     if (layers.n || layers.r) {
       neighbourhoods.forEach((q, index) => {
         if (!q.vis) return;
+
+        // Skip if this neighbourhood was already combined into the Double Pill
+        if (index === overlappingNeighbourhoodIndex) return;
 
         const isSelected = selectedId === q.i;
         const isShortlisted = shortlist.includes(q.i);
@@ -641,97 +888,6 @@ export const MapComponent: React.FC<MapComponentProps> = ({
 
         // Open popup for selected neighbourhood with proper padding, width, and unclipped badges
         if (isSelected) {
-          const badgeColorMap: Record<string, string> = {
-            'BEST FIT': 'bg-[#E8F4EF] text-[#176B50] border border-[#176B50]/20',
-            'BEST SAVINGS': 'bg-[#E8F4EF] text-[#176B50] border border-[#176B50]/20',
-            'LOWEST RENT': 'bg-blue-50 text-blue-700 border border-blue-200',
-            'SHORTEST COMMUTE': 'bg-blue-50 text-blue-700 border border-blue-200',
-            'GOOD ALTERNATIVE': 'bg-neutral-100 text-neutral-700 border border-neutral-200',
-            'OVER BUDGET': 'bg-rose-50 text-[#BE123C] border border-rose-200',
-            'LONG COMMUTE': 'bg-amber-50 text-amber-800 border border-amber-200',
-          };
-          const badgeColor =
-            badgeColorMap[q.badge] || 'bg-neutral-100 text-neutral-700 border border-neutral-200';
-
-          const roadKmDisplay =
-            q.roadKm !== null && q.roadKm !== undefined
-              ? `${q.roadKm} km road`
-              : 'Modeled road';
-          const straightKmDisplay = `${q.straightLineKm} km straight-line`;
-          const peakMinDisplay =
-            q.peakMin !== null && q.peakMin !== undefined
-              ? `~${q.peakMin} min peak`
-              : `~${q.drivingMin} min`;
-          const baselineMinDisplay =
-            q.baselineMin !== null && q.baselineMin !== undefined
-              ? `~${q.baselineMin} min off-peak`
-              : '';
-
-          const popupHtml = `
-            <div class="p-4 sm:p-5 text-[#18231E] font-sans w-[310px] sm:w-[340px] max-w-[88vw] select-none box-border">
-              <!-- Header with Corridor Name and Unclipped Status Badge -->
-              <div class="flex items-start justify-between gap-2.5 pb-3 border-b border-[#E5EAE5]">
-                <div class="min-w-0 flex-1 pr-1">
-                  <span class="text-[10px] font-mono font-bold uppercase tracking-wider text-[#176B50] block truncate">
-                    Corridor Match · Rank #${index + 1}
-                  </span>
-                  <h4 class="font-heading font-bold text-base text-[#18231E] leading-snug truncate mt-0.5" title="${q.a[0]}">
-                    ${q.a[0]}
-                  </h4>
-                </div>
-                <span class="inline-flex items-center justify-center px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider leading-none whitespace-nowrap shrink-0 shadow-2xs ${badgeColor}">
-                  ${q.badge}
-                </span>
-              </div>
-
-              <!-- Structured Cost & Commute Metrics -->
-              <div class="py-3 space-y-2.5 text-xs">
-                <div class="flex items-center justify-between gap-2">
-                  <span class="text-[#5F6A63] shrink-0">${PROPERTIES[propType][0]} Rent:</span>
-                  <span class="font-bold font-mono text-sm text-[#18231E] shrink-0 whitespace-nowrap">
-                    ${formatINR(q.x.e.rent)}<span class="text-[10px] font-normal text-[#5F6A63]">/mo</span>
-                  </span>
-                </div>
-
-                <div class="flex items-center justify-between gap-2">
-                  <span class="text-[#5F6A63] shrink-0">Estimated Commute:</span>
-                  <div class="text-right shrink-0 whitespace-nowrap">
-                    <span class="font-bold font-mono text-sm text-[#176B50]">${peakMinDisplay}</span>
-                    ${
-                      baselineMinDisplay
-                        ? `<span class="block text-[10px] font-mono text-[#5F6A63]">(${baselineMinDisplay})</span>`
-                        : ''
-                    }
-                  </div>
-                </div>
-
-                <div class="flex items-center justify-between gap-2">
-                  <span class="text-[#5F6A63] shrink-0">Road Network Distance:</span>
-                  <div class="text-right font-mono shrink-0 whitespace-nowrap">
-                    <span class="font-bold text-[#18231E]">${roadKmDisplay}</span>
-                    <span class="text-[10px] text-[#5F6A63] block">(${straightKmDisplay})</span>
-                  </div>
-                </div>
-
-                <div class="flex items-center justify-between gap-2 pt-2 border-t border-[#E5EAE5]/60">
-                  <span class="text-[#5F6A63] shrink-0">Upfront Deposit (Refundable):</span>
-                  <span class="font-mono font-bold text-[#18231E] shrink-0 whitespace-nowrap">${formatINR(q.depositRequired)}</span>
-                </div>
-              </div>
-
-              <!-- Monthly Surplus Callout Banner -->
-              <div class="p-2.5 sm:p-3 rounded-xl bg-[#E8F4EF] border border-[#176B50]/20 flex items-center justify-between gap-2 min-w-0">
-                <span class="text-[11px] font-semibold text-[#176B50] truncate">Monthly Disposable Surplus:</span>
-                <span class="font-mono font-bold text-xs sm:text-sm text-[#176B50] shrink-0 whitespace-nowrap">+${formatINR(q.monthlySurplus)}/mo</span>
-              </div>
-
-              <!-- Footnote -->
-              <div class="mt-2 text-[9px] text-[#5F6A63] italic leading-tight">
-                *Peak commute calibrated for Indian tech corridors; live sensor feed disconnected.
-              </div>
-            </div>
-          `;
-
           popupRef.current = new maplibregl.Popup({
             closeButton: false,
             closeOnClick: false,
@@ -741,7 +897,7 @@ export const MapComponent: React.FC<MapComponentProps> = ({
             maxWidth: 'none',
           })
             .setLngLat([q.a[2], q.a[1]])
-            .setHTML(popupHtml)
+            .setHTML(renderPopupCardHtml(q, index, propType))
             .addTo(map);
         }
       });
@@ -756,6 +912,7 @@ export const MapComponent: React.FC<MapComponentProps> = ({
     mapLoaded,
     propType,
     activeRoute,
+    mapZoom,
   ]);
 
   const handleZoom = (delta: number) => {
